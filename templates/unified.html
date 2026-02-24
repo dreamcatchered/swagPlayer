@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% if page_title %}{{ page_title }} - {% endif %}SwagPlayer</title>
+    
+    {% if shared_track %}
+    <meta property="og:title" content="{{ shared_track.title }}">
+    <meta property="og:description" content="{{ shared_track.artist }}">
+    {% if shared_track.cover_filename %}
+    <meta property="og:image" content="{{ request.url_root }}uploads/{{ shared_track.cover_filename }}">
+    {% endif %}
+    {% elif shared_album %}
+    <meta property="og:title" content="{{ shared_album.title }}">
+    <meta property="og:description" content="{{ shared_album.description or 'Альбом' }}">
+    {% if shared_album.cover_filename %}
+    <meta property="og:image" content="{{ request.url_root }}uploads/{{ shared_album.cover_filename }}">
+    {% endif %}
+    {% endif %}
+    
+    <meta name="theme-color" content="#000000">
+    <link rel="icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/css/unified.css">
+</head>
+<body>
+    <audio id="audio" preload="metadata"></audio>
+    
+    <!-- AUTH OVERLAY -->
+    <div id="auth-overlay" class="auth-overlay" style="display:none;">
+        <div class="text-center"><div class="spinner mx-auto mb-4"></div><p class="text-zinc-400">Авторизация...</p></div>
+    </div>
+    
+    <!-- MAIN APP -->
+    <div id="app" class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <button id="back-btn" class="icon-btn" style="display:none;" onclick="goBack()">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </button>
+                <h1 class="logo" id="page-title">swagplayer</h1>
+            </div>
+            <div class="header-right">
+                <button class="icon-btn" onclick="toggleSearch()"><i data-lucide="search" class="w-5 h-5"></i></button>
+                <button class="icon-btn" onclick="openProfile()" id="user-btn">
+                    <img id="user-avatar" src="" style="display:none;">
+                    <i data-lucide="user" class="w-5 h-5" id="user-icon"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- SEARCH -->
+        <div id="search-bar" class="search-bar" style="display:none;">
+            <form onsubmit="performSearch(event)">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Что хочешь послушать?">
+            </form>
+        </div>
+        
+        <!-- TABS -->
+        <div class="tabs-container" id="nav-tabs">
+            <div class="tab active" data-tab="all" onclick="switchTab('all')">Всё</div>
+            <div class="tab" data-tab="tracks" onclick="switchTab('tracks')">Треки</div>
+            <div class="tab" data-tab="albums" onclick="switchTab('albums')">Альбомы</div>
+            <div class="tab" data-tab="my" onclick="switchTab('my')">Моё</div>
+        </div>
+        
+        <!-- CONTENT -->
+        <main class="content-scroll" id="main-content">
+            <section id="tracks-section" class="section">
+                <h2 class="section-title"><i data-lucide="music" class="w-5 h-5"></i> Треки</h2>
+                <div id="tracks-list" class="tracks-list"></div>
+            </section>
+            <section id="albums-section" class="section">
+                <h2 class="section-title"><i data-lucide="disc-3" class="w-5 h-5"></i> Альбомы</h2>
+                <div id="albums-grid" class="albums-grid"></div>
+            </section>
+            <section id="my-section" class="section" style="display:none;">
+                <div id="my-auth-prompt" class="empty-state">
+                    <i data-lucide="lock" class="w-12 h-12"></i>
+                    <p>Войдите чтобы увидеть свою библиотеку</p>
+                    <button class="btn-primary" onclick="requestAuth()">Войти через Telegram</button>
+                </div>
+                <div id="my-content" style="display:none;">
+                    <h3 class="section-title">Мои треки</h3>
+                    <div id="my-tracks-list" class="tracks-list"></div>
+                    <h3 class="section-title">Мои альбомы</h3>
+                    <div id="my-albums-grid" class="albums-grid"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- MINI PLAYER -->
+    <div id="mini-player" class="mini-player" onclick="expandPlayer()">
+        <img id="mini-cover" src="" class="mini-cover">
+        <div class="mini-info">
+            <div id="mini-title" class="mini-title">Не воспроизводится</div>
+            <div id="mini-artist" class="mini-artist"></div>
+        </div>
+        <div class="mini-controls" onclick="event.stopPropagation()">
+            <button onclick="prevTrack()"><i data-lucide="skip-back" class="w-5 h-5"></i></button>
+            <button id="mini-play-btn" onclick="togglePlay()"><i data-lucide="play" class="w-6 h-6 fill-white"></i></button>
+            <button onclick="nextTrack()"><i data-lucide="skip-forward" class="w-5 h-5"></i></button>
+            <button class="volume-btn-mini" onclick="toggleMiniVolume()" id="mini-vol-btn">
+                <i data-lucide="volume-2" class="w-5 h-5"></i>
+                <div class="volume-popup" id="mini-vol-popup"><input type="range" id="mini-vol-slider" min="0" max="1" step="0.01" value="1" orient="vertical"></div>
+            </button>
+        </div>
+    </div>
+    
+    <!-- FULL PLAYER -->
+    <div id="full-player" class="full-player">
+        <div id="player-wrapper" class="player-wrapper">
+            <!-- PLAYER SECTION -->
+            <div id="player-section" class="player-section">
+                <button class="close-btn" onclick="collapsePlayer()"><i data-lucide="chevron-down" class="w-8 h-8"></i></button>
+                
+                <div class="art-container">
+                    <div id="art-card" class="art-card"></div>
+                </div>
+                
+                <div class="info-controls">
+                    <div class="track-info">
+                        <h1 id="full-title" class="full-title">Название</h1>
+                        <p id="full-artist" class="full-artist">Исполнитель</p>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <input type="range" id="progress" class="progress-range" value="0" min="0" max="100" step="0.1">
+                        <div class="time-display">
+                            <span id="cur-time">0:00</span>
+                            <span id="total-time">0:00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="main-controls">
+                        <button class="ctrl-btn" onclick="toggleShuffle()" id="shuffle-btn"><i data-lucide="shuffle" class="w-5 h-5"></i></button>
+                        <button class="ctrl-btn" onclick="prevTrack()"><i data-lucide="skip-back" class="w-8 h-8 fill-white"></i></button>
+                        <button class="play-btn" id="play-btn" onclick="togglePlay()"><i data-lucide="play" class="w-8 h-8 fill-black" id="play-icon"></i></button>
+                        <button class="ctrl-btn" onclick="nextTrack()"><i data-lucide="skip-forward" class="w-8 h-8 fill-white"></i></button>
+                        <button class="ctrl-btn" onclick="toggleLyrics()" id="lyrics-btn"><i data-lucide="quote" class="w-5 h-5"></i></button>
+                    </div>
+                    
+                    <div class="secondary-controls">
+                        <button class="like-btn" id="like-btn" onclick="toggleLike()">
+                            <i data-lucide="heart" class="w-5 h-5" id="like-icon"></i>
+                            <span id="likes-count">0</span>
+                        </button>
+                        <div class="volume-control" id="volume-control">
+                            <i data-lucide="volume-2" class="w-5 h-5" id="volume-icon"></i>
+                            <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.01" value="1">
+                        </div>
+                        <button class="share-btn" onclick="shareTrack()"><i data-lucide="share" class="w-5 h-5"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- LYRICS SECTION -->
+            <div id="lyrics-section" class="lyrics-section">
+                <button class="close-lyrics-btn" onclick="toggleLyrics()"><i data-lucide="chevron-down" class="w-10 h-10"></i></button>
+                <div id="lyrics-scroll" class="lyrics-scroll"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PROFILE MODAL -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <button onclick="closeProfile()"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <h2>Профиль</h2>
+                <div style="width:40px"></div>
+            </header>
+            <div id="profile-content" class="modal-body"></div>
+        </div>
+    </div>
+    
+    <!-- ALBUM VIEW (when viewing album page) -->
+    {% if shared_album %}
+    <div id="album-view" class="album-view">
+        <header class="album-header">
+            <a href="/" class="back-link">
+                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+            </a>
+        </header>
+        <div class="album-hero">
+            <div class="album-cover-large">
+                {% if shared_album.cover_filename %}
+                <img src="/uploads/{{ shared_album.cover_filename }}" alt="{{ shared_album.title }}">
+                {% else %}
+                <div class="placeholder"><i data-lucide="disc-3" class="w-16 h-16"></i></div>
+                {% endif %}
+            </div>
+            <div class="album-info-large">
+                <h1>{{ shared_album.title }}</h1>
+                <p class="album-desc">{{ shared_album.description or 'Альбом' }}</p>
+                <div class="album-meta">
+                    <span>{{ album_tracks | length }} треков</span>
+                    <span>{{ shared_album.plays_count or 0 }} прослушиваний</span>
+                </div>
+                <button class="btn-primary play-all-btn" onclick="window.SwagPlayer.playAlbumTracks()">
+                    <i data-lucide="play" class="w-5 h-5 fill-black"></i>
+                    Слушать
+                </button>
+            </div>
+        </div>
+        <div class="album-tracks-list">
+            {% for track in album_tracks %}
+            <div class="track-card" onclick="window.SwagPlayer.playAlbumTrack({{ loop.index0 }})">
+                <div class="track-num">{{ loop.index }}</div>
+                <img src="{% if track.cover_filename %}/uploads/{{ track.cover_filename }}{% else %}/static/img/default-cover.svg{% endif %}" class="track-thumb">
+                <div class="info">
+                    <div class="title">{{ track.title }}</div>
+                    <div class="artist">{{ track.artist or '' }}</div>
+                </div>
+                <div class="stats">
+                    <span><i data-lucide="play" class="w-3 h-3"></i>{{ track.plays_count or 0 }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- DATA -->
+    <script>
+        window.INIT = {
+            mode: '{{ mode or "library" }}',
+            sharedTrack: {{ shared_track | tojson | safe if shared_track else 'null' }},
+            sharedAlbum: {{ shared_album | tojson | safe if shared_album else 'null' }},
+            albumTracks: {{ album_tracks | tojson | safe if album_tracks else '[]' }},
+            tracks: {{ tracks | tojson | safe if tracks else '[]' }},
+            albums: {{ albums | tojson | safe if albums else '[]' }},
+            user: {{ current_user | tojson | safe if current_user else 'null' }},
+            q: '{{ search_query or "" }}'
+        };
+        window.isTelegram = !!(window.Telegram?.WebApp?.initData);
+        window.tg = window.isTelegram ? window.Telegram.WebApp : null;
+    </script>
+    <script src="/static/js/unified.js"></script>
+</body>
+</html>

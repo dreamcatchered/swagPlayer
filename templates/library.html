@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.display_name or user.nickname or 'User' }} - SwagPlayer</title>
+    <link rel="icon" type="image/x-icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .user-header {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 40px;
+        }
+        .user-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+            border: 4px solid #fa2d48;
+        }
+        .user-name {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .user-nickname {
+            font-size: 18px;
+            color: rgba(255,255,255,0.6);
+        }
+        .section {
+            margin-bottom: 60px;
+        }
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            max-height: none;
+            overflow-y: visible;
+        }
+        
+        /* Адаптация для большого количества треков */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+        }
+        
+        /* Виртуальный скролл для очень большого количества */
+        .tracks-container {
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .tracks-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .tracks-container::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+        
+        .tracks-container::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+        }
+        
+        .tracks-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .card {
+            background: #1c1c1e;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            background: #2c2c2e;
+        }
+        .card-cover {
+            width: 100%;
+            aspect-ratio: 1/1;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-bottom: 12px;
+            background: #333;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-artist {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,0.4);
+        }
+        
+        /* Кнопка "Назад" */
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(-2px);
+        }
+        
+        .back-btn:active {
+            transform: translateX(-2px) scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 20px;">
+            <button class="back-btn" onclick="window.SPANavigation?.goBack() || window.history.back()">
+                <ion-icon name="arrow-back"></ion-icon>
+            </button>
+        </div>
+        <div class="user-header">
+            {% if user.avatar_url %}
+            <img src="{{ user.avatar_url }}" alt="{{ user.display_name }}" class="user-avatar">
+            {% else %}
+            <div style="width:120px; height:120px; border-radius:50%; background:#333; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; font-size:48px;">
+                <ion-icon name="person"></ion-icon>
+            </div>
+            {% endif %}
+            <div class="user-name">{{ user.display_name or user.nickname or 'User' }}</div>
+            {% if user.nickname %}
+            <div class="user-nickname">@{{ user.nickname }}</div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Треки ({{ tracks|length }})</h2>
+            {% if tracks %}
+            <div class="tracks-container">
+                <div class="grid">
+                    {% for track in tracks %}
+                    <a href="/track/{{ track.slug or track.id }}" class="card">
+                        <img src="/uploads/{{ track.cover_filename }}" alt="{{ track.title }}" class="card-cover" 
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div style="display:none; width:100%; aspect-ratio:1/1; border-radius:8px; background:#333; align-items:center; justify-content:center; margin-bottom:12px;">
+                            <ion-icon name="musical-notes" style="font-size:48px; color:#666;"></ion-icon>
+                        </div>
+                        <div class="card-title">{{ track.title }}</div>
+                        <div class="card-artist">{{ track.artist }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">Пока нет треков</div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Альбомы</h2>
+            {% if albums %}
+            <div class="grid">
+                {% for album in albums %}
+                <a href="/album/{{ album.slug or album.id }}" class="card">
+                    {% if album.cover_filename %}
+                    <img src="/uploads/{{ album.cover_filename }}" alt="{{ album.title }}" class="card-cover">
+                    {% else %}
+                    <div style="width:100%; aspect-ratio:1/1; border-radius:8px; background:linear-gradient(135deg, #333 0%, #1c1c1e 100%); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
+                        <ion-icon name="albums" style="font-size:48px; color:#666;"></ion-icon>
+                    </div>
+                    {% endif %}
+                    <div class="card-title">{{ album.title }}</div>
+                    {% if album.description %}
+                    <div class="card-artist" style="font-size:12px; margin-top:4px;">{{ album.description[:50] }}{% if album.description|length > 50 %}...{% endif %}</div>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">Пока нет альбомов</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script src="/static/js/navigation.js?v=1"></script>
+</body>
+</html>
+

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>{{ page_title if page_title else 'SwagPlayer' }}</title>
+    
+    {% if shared_track %}
+    <meta property="og:title" content="{{ shared_track.title }}">
+    <meta property="og:description" content="{{ shared_track.artist }}">
+    <meta property="og:type" content="music.song">
+    {% if shared_track.cover_filename %}
+    <meta property="og:image" content="{{ request.url_root }}uploads/{{ shared_track.cover_filename }}">
+    {% endif %}
+    {% endif %}
+    
+    <!-- Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Telegram Meta Tags -->
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
+    
+    <!-- Иконки Apple Style -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    
+    <link rel="stylesheet" href="/static/css/app.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="{{ 'shared-mode' if shared_mode else '' }}" data-page="app">
+    <div class="bg-noise"></div>
+
+    <!-- SKELETON LOADER (Only for Shared Mode) -->
+    <div class="skeleton-loader" id="skeleton-loader">
+        <div class="skeleton-header"></div>
+        <div class="skeleton-content">
+            <div class="skeleton-visual">
+                <div class="skeleton-item skeleton-cover"></div>
+            </div>
+            <div class="skeleton-info">
+                <div class="skeleton-item skeleton-title"></div>
+                <div class="skeleton-item skeleton-artist"></div>
+            </div>
+            <div class="skeleton-progress"></div>
+            <div class="skeleton-time">
+                <div class="skeleton-item skeleton-time-text"></div>
+                <div class="skeleton-item skeleton-time-text"></div>
+            </div>
+            <div class="skeleton-controls">
+                <div class="skeleton-item skeleton-btn"></div>
+                <div class="skeleton-item skeleton-btn large"></div>
+                <div class="skeleton-item skeleton-btn"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <div class="auth-screen" id="auth-screen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h1 style="font-size: 32px; font-weight: 700; letter-spacing: -1px; background: linear-gradient(to right, #fff, rgba(255,255,255,0.5)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: lowercase; margin-bottom: 10px;">swagplayer</h1>
+                <p style="font-size: 14px; color: rgba(255,255,255,0.5);">music platform</p>
+            </div>
+            <div class="auth-content">
+                <div class="auth-loading" id="auth-loading">
+                    <div class="spinner"></div>
+                    <p>Авторизация через Telegram...</p>
+                </div>
+                <div class="auth-error" id="auth-error" style="display:none;">
+                    <ion-icon name="alert-circle"></ion-icon>
+                    <p id="auth-error-text">Не удалось авторизоваться через Telegram</p>
+                    <button class="btn-primary" onclick="retryAuth()">Повторить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ГЛАВНОЕ ПРИЛОЖЕНИЕ -->
+    <div class="main-app" id="main-app" style="display:none;">
+        <!-- НАВИГАЦИЯ -->
+        <div class="app-nav">
+            <div class="nav-item active" data-page="library">
+                <ion-icon name="musical-notes"></ion-icon>
+                <span>Моя библиотека</span>
+            </div>
+            <div class="nav-item" data-page="upload">
+                <ion-icon name="add-circle"></ion-icon>
+                <span>Загрузить</span>
+            </div>
+            <div class="nav-item" data-page="albums">
+                <ion-icon name="albums"></ion-icon>
+                <span>Альбомы</span>
+            </div>
+            <div class="nav-item" data-page="profile">
+                <ion-icon name="person"></ion-icon>
+                <span>Профиль</span>
+            </div>
+        </div>
+
+        <!-- ШАПКА -->
+        <div class="app-header">
+            <div class="header-left">
+                <a href="/" class="back-btn" id="header-back-btn" data-no-spa="true" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.1); text-decoration:none; color:white;">
+                    <ion-icon name="arrow-back"></ion-icon>
+                </a>
+                <h1 id="page-title">Моя библиотека</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" onclick="showShareLibrary()" id="share-btn" style="display:none;">
+                    <ion-icon name="share"></ion-icon>
+                </button>
+            </div>
+        </div>
+
+        <!-- КОНТЕНТ -->
+        <div class="app-content">
+            <!-- СТРАНИЦА: МОЯ БИБЛИОТЕКА -->
+            <div class="page active" id="page-library">
+                <div class="library-stats">
+                    <div class="stat-card">
+                        <ion-icon name="musical-notes"></ion-icon>
+                        <div>
+                            <div class="stat-value" id="tracks-count">0</div>
+                            <div class="stat-label">Треков</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <ion-icon name="albums"></ion-icon>
+                        <div>
+                            <div class="stat-value" id="albums-count">0</div>
+                            <div class="stat-label">Альбомов</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tracks-grid" id="my-tracks-list">
+                    <!-- Треки загрузятся через JS -->
+                </div>
+                <div class="empty-state" id="empty-tracks" style="display:none;">
+                    <ion-icon name="musical-notes-outline"></ion-icon>
+                    <p>У вас пока нет треков</p>
+                    <button class="btn-primary" onclick="switchPage('upload')">Загрузить первый трек</button>
+                </div>
+            </div>
+
+            <!-- СТРАНИЦА: ЗАГРУЗКА ТРЕКА -->
+            <div class="page" id="page-upload">
+                <div class="upload-form">
+                    <h2>Загрузить треки</h2>
+                    
+                    <!-- Область выбора файлов -->
+                    <div id="upload-initial-state">
+                        <div class="upload-drop-zone" onclick="document.getElementById('audio-files-input').click()" 
+                             style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s;"
+                             onmouseover="this.style.borderColor='rgba(255,255,255,0.4)'; this.style.background='rgba(255,255,255,0.05)'"
+                             onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.background='transparent'">
+                            <ion-icon name="cloud-upload-outline" style="font-size: 48px; color: #fa2d48; margin-bottom: 10px;"></ion-icon>
+                            <h3 style="font-size: 18px; margin-bottom: 8px;">Выберите файлы</h3>
+                            <p style="font-size: 14px; color: rgba(255,255,255,0.5);">MP3, WAV, OGG (до 10 файлов)</p>
+                            <input type="file" id="audio-files-input" accept="audio/*" multiple style="display: none;" onchange="handleFilesSelect(this)">
+                        </div>
+                    </div>
+
+                    <!-- Список выбранных файлов (скрыт по умолчанию) -->
+                    <div id="upload-preview-container" style="display: none;">
+                        <div class="upload-actions" style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center;">
+                            <h3 id="upload-count-label">Выбрано файлов: 0</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn-secondary" onclick="resetUpload()">Отмена</button>
+                                <button class="btn-primary" onclick="publishAllTracks()">
+                                    <ion-icon name="checkmark-done"></ion-icon> Опубликовать все
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="upload-tracks-list" style="display: flex; flex-direction: column; gap: 15px;">
+                            <!-- Здесь будут карточки треков -->
+                        </div>
+                    </div>
+                    
+                    <!-- Скрытая форма для совместимости (если нужно) -->
+                    <form id="upload-form" style="display:none"></form>
+                </div>
+            </div>
+
+            <!-- СТРАНИЦА: АЛЬБОМЫ -->
+            <div class="page" id="page-albums">
+                <div class="albums-header">
+                    <h2>Мои альбомы</h2>
+                    <button class="btn-primary" onclick="showCreateAlbum()">
+                        <ion-icon name="add"></ion-icon>
+                        Создать альбом
+                    </button>
+                </div>
+                <div class="albums-grid" id="my-albums-list">
+                    <!-- Альбомы загрузятся через JS -->
+                </div>
+                <div class="empty-state" id="empty-albums" style="display:none;">
+                    <ion-icon name="albums-outline"></ion-icon>
+                    <p>У вас пока нет альбомов</p>
+                    <button class="btn-primary" onclick="showCreateAlbum()">Создать первый альбом</button>
+                </div>
+            </div>
+
+            <!-- СТРАНИЦА: ПРОФИЛЬ -->
+            <div class="page" id="page-profile">
+                <div class="profile-card">
+                    <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 20px;">
+                        <div class="profile-avatar" id="profile-avatar" onclick="document.getElementById('profile-avatar-input').click()" style="cursor: pointer; width: 100%; height: 100%; overflow: hidden; border-radius: 50%;">
+                            <img id="avatar-img" src="" alt="Avatar">
+                            <div class="avatar-placeholder">
+                                <ion-icon name="person"></ion-icon>
+                            </div>
+                        </div>
+                        <div onclick="document.getElementById('profile-avatar-input').click()" style="position: absolute; bottom: 0; right: 0; background: #fa2d48; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid #1c1c1e; cursor: pointer; z-index: 5;">
+                            <ion-icon name="camera" style="font-size: 18px;"></ion-icon>
+                        </div>
+                    </div>
+                    <input type="file" id="profile-avatar-input" accept="image/*" style="display: none;" onchange="previewAvatar(this)">
+                    <h2 id="profile-name">Загрузка...</h2>
+                    <p id="profile-nickname" class="profile-nickname"></p>
+                    <div style="margin-bottom: 20px; display: flex; justify-content: center;">
+                        <a href="#" id="profile-library-link" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-width: 200px;">
+                            <ion-icon name="musical-notes"></ion-icon>
+                            Моя библиотека
+                        </a>
+                    </div>
+                    <div class="profile-info">
+                        <div class="info-item">
+                            <label>Имя для отображения</label>
+                            <input type="text" id="profile-display-name" placeholder="Ваше имя">
+                        </div>
+                        <div class="info-item">
+                            <label>Nickname (для ссылки)</label>
+                            <input type="text" id="profile-nickname-input" placeholder="your-nickname">
+                            <small>swag.dreampartners.online/user/<span id="profile-slug-preview">...</span></small>
+                        </div>
+                        <div class="info-item">
+                            <label>Статистика</label>
+                            <div style="display: flex; gap: 20px; margin-top: 10px;">
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: rgba(255,255,255,0.6);">
+                                    <ion-icon name="play" style="font-size: 16px;"></ion-icon>
+                                    <span id="profile-total-plays">0</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: rgba(255,255,255,0.6);">
+                                    <ion-icon name="heart" style="font-size: 16px;"></ion-icon>
+                                    <span id="profile-total-likes">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="saveProfile()">
+                        <ion-icon name="save"></ion-icon>
+                        Сохранить изменения
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДУЛЬНЫЙ ПЛЕЕР -->
+    {% include 'player_component.html' %}
+
+    <!-- МОДАЛЬНЫЕ ОКНА -->
+    <!-- Модалка создания альбома -->
+    <div class="modal" id="modal-create-album">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Создать альбом</h2>
+                <button class="btn-icon" onclick="closeModal('modal-create-album')">
+                    <ion-icon name="close"></ion-icon>
+                </button>
+            </div>
+            <form id="create-album-form">
+                <div class="form-group">
+                    <label>Название альбома</label>
+                    <input type="text" id="album-title" placeholder="Название альбома" required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea id="album-description" rows="3" placeholder="Описание альбома" autocomplete="off"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Обложка альбома (опционально)</label>
+                    <input type="file" id="album-cover-file" accept="image/*">
+                    <div class="cover-preview" id="album-cover-preview"></div>
+                </div>
+                <div class="form-group">
+                    <label>Короткая ссылка (slug)</label>
+                    <input type="text" id="album-slug" placeholder="my-album" autocomplete="off">
+                    <small>swag.dreampartners.online/album/<span id="album-slug-preview">...</span></small>
+                </div>
+                <button type="submit" class="btn-primary">Создать альбом</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка редактирования трека -->
+    <div class="modal" id="modal-edit-track">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать трек</h2>
+                <button class="btn-icon" onclick="closeModal('modal-edit-track')">
+                    <ion-icon name="close"></ion-icon>
+                </button>
+            </div>
+            <form id="edit-track-form" style="display: flex; flex-direction: column; height: 100%;">
+                <div style="flex: 1; overflow-y: auto; padding-bottom: 20px; min-height: 0;">
+                    <input type="hidden" id="edit-track-id">
+                    <div class="form-group">
+                        <label>Название трека</label>
+                        <input type="text" id="edit-track-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Исполнитель</label>
+                        <input type="text" id="edit-track-artist" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Заменить аудиофайл</label>
+                        <input type="file" id="edit-track-audio-file" accept="audio/*">
+                        <div class="file-info" id="edit-track-audio-info"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Короткая ссылка</label>
+                        <input type="text" id="edit-track-slug">
+                    </div>
+                    <div class="form-group">
+                        <label>Обложка трека</label>
+                        <input type="file" id="edit-track-cover-file" accept="image/*">
+                        <div class="cover-preview" id="edit-track-cover-preview"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Текст (LRC)</label>
+                        <textarea id="edit-track-lyrics" rows="4"></textarea>
+                        <button type="button" class="btn-secondary" onclick="openLyricsStudio()">
+                            <ion-icon name="musical-notes"></ion-icon> Lyrics Studio
+                        </button>
+                    </div>
+                </div>
+                <div class="form-actions" style="margin-top: 0; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); background: #1c1c1e; z-index: 10; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 10px; width: 100%;">
+                        <button type="button" class="btn-secondary" onclick="toggleTrackVisibility()" style="flex: 1;">
+                            <ion-icon name="eye-off"></ion-icon>
+                            <span id="visibility-btn-text">Скрыть</span>
+                        </button>
+                        <button type="button" class="btn-danger" onclick="deleteCurrentTrack()" style="flex: 1;">
+                            <ion-icon name="trash"></ion-icon>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width: 100%;">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модалка Lyrics Studio -->
+    <div class="modal modal-large" id="modal-lyrics-studio" style="z-index: 10010;">
+        <div class="modal-content" style="max-width: 1000px; height: 95vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2>Lyrics Studio</h2>
+                <button class="btn-icon" onclick="closeModal('modal-lyrics-studio')">
+                    <ion-icon name="close"></ion-icon>
+                </button>
+            </div>
+            
+            <div class="ls-guide">
+                <strong>Как пользоваться:</strong>
+                <ol>
+                    <li>Вставьте текст песни в левое поле.</li>
+                    <li>Нажмите кнопку <b>"Распарсить текст"</b> (стрелочка вправо).</li>
+                    <li>Запустите плеер кнопкой Play.</li>
+                    <li>Нажимайте <b>Пробел</b> или кнопку с отпечатком в момент начала каждой строки.</li>
+                    <li>Когда закончите, нажмите <b>"Сохранить лирику"</b>, чтобы применить изменения.</li>
+                    <li><b>ВАЖНО:</b> Не забудьте нажать "Сохранить" в главном окне редактирования трека!</li>
+                </ol>
+            </div>
+
+            <div class="lyrics-studio">
+                <div class="ls-controls">
+                    <button class="action-btn" onclick="lsPlayPause()" id="ls-play-btn"><ion-icon name="play"></ion-icon></button>
+                    <div id="ls-time-display">0:00</div>
+                    <input type="range" id="ls-seek" value="0" min="0" max="100" step="0.1">
+                    <button class="btn-sync-large" onclick="lsSyncCurrentLine()" title="Синхронизировать (Пробел)">
+                        <ion-icon name="finger-print"></ion-icon>
+                    </button>
+                </div>
+
+                <div class="ls-editor-container">
+                    <!-- RAW TEXT PANE -->
+                    <div class="ls-pane">
+                        <div class="ls-header">
+                            <span>1. Исходный текст</span>
+                            <button class="btn-ls-action" onclick="lsParseText()">
+                                Распарсить текст <ion-icon name="arrow-forward"></ion-icon>
+                            </button>
+                        </div>
+                        <textarea class="ls-input" id="ls-raw-input" placeholder="Вставьте текст песни здесь..." oninput="syncFromRawText()"></textarea>
+                    </div>
+                    
+                    <!-- SYNC PANE -->
+                    <div class="ls-pane">
+                        <div class="ls-header">
+                            <span>2. Таймлайн (Синхронизация)</span>
+                            <button class="btn-ls-action primary" onclick="lsExport()">
+                                <ion-icon name="checkmark"></ion-icon> Сохранить лирику
+                            </button>
+                        </div>
+                        <div class="ls-timeline" id="ls-lines-container">
+                            <!-- Lines will go here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden Audio for Lyrics Studio -->
+    <audio id="ls-audio"></audio>
+
+    <script>
+        var SHARED_MODE = {{ 'true' if shared_mode else 'false' }};
+        var INITIAL_TRACK = {{ shared_track | tojson | safe if shared_track else 'null' }};
+        var INIT_DATA_FROM_URL = {% if init_data %}{{ init_data | tojson | safe }}{% else %}null{% endif %};
+    </script>
+    <script src="/static/js/navigation.js?v=2"></script>
+    <script src="/static/js/app.js?v=19"></script>
+    <script src="/static/js/profile.js?v=19"></script>
+    <script src="/static/js/player.js?v=19"></script>
+</body>
+</html>

@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Admin Panel - Music Player</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
+    
+    <!-- Иконки -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --card-hover: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --accent: #fa2d48;
+            --border: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(255,255,255,0.1);
+            --success: #32d74b;
+            --danger: #ff453a;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-top: env(safe-area-inset-top, 20px);
+        }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 800; }
+        
+        .btn-add {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.1s;
+        }
+        .btn-add:active { transform: scale(0.96); }
+        
+        /* Track List */
+        .track-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .track-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: background 0.2s;
+            position: relative;
+        }
+        .track-card:hover { background: var(--card-hover); }
+        
+        .track-card.hidden-track { opacity: 0.5; }
+        
+        .card-img {
+            width: 60px; height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #333;
+            flex-shrink: 0;
+        }
+        
+        .card-img.no-cover {
+            background: linear-gradient(135deg, #333 0%, #1c1c1e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 24px;
+        }
+        
+        .card-info { 
+            flex: 1; 
+            min-width: 0; 
+            overflow: hidden;
+        }
+        .card-title { 
+            font-weight: 600; 
+            font-size: 16px; 
+            margin-bottom: 4px; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-artist { 
+            color: var(--text-secondary); 
+            font-size: 14px; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card-slug { 
+            color: var(--accent); 
+            font-size: 12px; 
+            margin-top: 4px; 
+            display: inline-block;
+            background: rgba(250, 45, 72, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            text-decoration: none;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .card-slug:hover { 
+            background: rgba(250, 45, 72, 0.2);
+        }
+        .card-id { 
+            color: var(--text-secondary); 
+            font-size: 11px; 
+            margin-top: 2px; 
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            font-family: monospace;
+            text-decoration: none;
+            transition: background 0.2s, color 0.2s;
+            cursor: pointer;
+        }
+        .card-id:hover { 
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .action-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        .action-btn:hover { background: rgba(255,255,255,0.2); }
+        .action-btn.danger { color: var(--danger); background: rgba(255, 69, 58, 0.1); }
+        
+        .drag-handle {
+            color: var(--text-secondary);
+            cursor: grab;
+            padding: 5px;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .modal-overlay.open { display: flex; opacity: 1; }
+        
+        .modal-window {
+            margin: auto;
+            background: #1c1c1e;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            border-radius: 20px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.95);
+            transition: transform 0.3s;
+            overflow-y: auto;
+        }
+        .modal-overlay.open .modal-window { transform: scale(1); }
+        
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 { margin: 0; font-size: 22px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px; }
+        .form-input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .form-input:focus { border-color: var(--accent); }
+        
+        .btn-primary {
+            background: var(--accent); color: white; border: none;
+            width: 100%; padding: 14px; border-radius: 12px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+        }
+        
+        /* Lyrics Studio Specifics */
+        .lyrics-studio {
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            gap: 15px;
+        }
+        
+        .ls-controls {
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 10px;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        
+        #ls-time-display {
+            font-family: monospace;
+            min-width: 70px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+        #ls-seek {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .ls-editor-container {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            min-height: 0; /* For flex scrolling */
+        }
+        
+        .ls-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        
+        .ls-header {
+                padding: 10px;
+            background: rgba(255,255,255,0.05);
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ls-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 15px;
+            resize: none;
+            font-family: monospace;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        
+        .ls-timeline {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px 0 0 0;
+        }
+        
+        .ls-line {
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            transition: background 0.1s;
+        }
+        .ls-line:hover { background: rgba(255,255,255,0.05); }
+        .ls-line.active { background: rgba(250, 45, 72, 0.2); border-left: 3px solid var(--accent); }
+        .ls-line.empty-line {
+            min-height: 20px;
+            padding: 5px 15px;
+            opacity: 0.3;
+        }
+        .ls-line.empty-line:hover { opacity: 0.5; }
+        
+        .ls-time {
+            font-family: monospace;
+            color: var(--accent);
+            font-size: 13px;
+            min-width: 80px;
+            flex-shrink: 0;
+            user-select: none;
+        }
+        .ls-time-input {
+            font-family: monospace;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+        .ls-text { 
+            flex: 1; 
+            font-size: 14px; 
+            min-width: 0;
+            word-break: break-word;
+            padding-right: 5px;
+        }
+        .ls-text-input {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--accent);
+            color: white;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .ls-actions {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .ls-btn-small {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .ls-btn-small:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Banner */
+        .ls-banner {
+            background: linear-gradient(135deg, #1c1c1e 0%, #2c2c2e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .ls-banner::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--accent);
+        }
+        .ls-banner-icon {
+            font-size: 40px;
+            color: var(--accent);
+            background: rgba(250, 45, 72, 0.1);
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .ls-banner-content h3 { margin: 0 0 5px 0; font-size: 18px; color: white; }
+        .ls-banner-content p { margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.4; }
+        
+        /* Mini Player inside card */
+        .track-player {
+            width: 100%;
+            height: 32px;
+            margin-top: 8px;
+            opacity: 1; /* Убрал прозрачность для четкости */
+            outline: none;
+        }
+        /* Стилизация плеера для Webkit (Chrome, Safari) */
+        .track-player::-webkit-media-controls-panel {
+            background-color: #2c2c2e; /* Темно-серый фон */
+        }
+        .track-player::-webkit-media-controls-current-time-display,
+        .track-player::-webkit-media-controls-time-remaining-display {
+            color: #ffffff !important; /* Белый текст принудительно */
+            text-shadow: none;
+        }
+        .track-player::-webkit-media-controls-play-button,
+        .track-player::-webkit-media-controls-volume-slider {
+            filter: invert(1); /* Инвертируем иконки, чтобы были белыми */
+        }
+        
+        /* LS Guide */
+        .ls-guide {
+            background: rgba(255, 255, 255, 0.05);
+                padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--accent);
+        }
+        .ls-guide ol {
+            margin: 5px 0 0 20px;
+            padding: 0;
+        }
+        .ls-guide li {
+            margin-bottom: 4px;
+        }
+        
+        .btn-ls-action {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+        .btn-ls-action:hover { background: rgba(255, 255, 255, 0.2); }
+        .btn-ls-action.primary { background: var(--accent); color: white; }
+        .btn-ls-action.primary:hover { background: #d41e36; }
+
+        .btn-sync-large {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px; height: 60px;
+            font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 5px 15px rgba(250, 45, 72, 0.4);
+            margin-left: auto;
+            cursor: pointer;
+        }
+        .btn-sync-large:active { transform: scale(0.9); }
+        
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .header h1 { font-size: 24px; }
+            .btn-add { padding: 8px 12px; font-size: 14px; }
+            .btn-add span { display: none; }
+            .btn-add ion-icon { margin: 0; font-size: 20px; }
+            
+            .track-card {
+                padding: 12px;
+                gap: 10px;
+            }
+            .card-img {
+                width: 50px;
+                height: 50px;
+            }
+            .card-info { 
+                min-width: 0;
+                flex: 1;
+            }
+            .card-title { font-size: 15px; }
+            .card-artist { font-size: 13px; }
+            .card-slug { font-size: 11px; }
+            
+            .card-actions {
+                gap: 4px;
+            }
+            .action-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+            .drag-handle {
+                display: none; /* Скрываем на мобильных */
+            }
+            
+            .ls-editor-container { flex-direction: column; }
+            .ls-pane { min-height: 200px; }
+            .ls-controls {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .btn-sync-large {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            .ls-line {
+                padding: 8px 10px;
+                gap: 8px;
+            }
+            .ls-time {
+                min-width: 60px;
+                font-size: 12px;
+            }
+            .ls-text {
+                font-size: 13px;
+            }
+            .ls-btn-small {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Управление</h1>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-add" onclick="window.location.href='/admin?tab=albums'">
+                    <ion-icon name="albums"></ion-icon>
+                    <span>Альбомы</span>
+                </button>
+                <button class="btn-add" onclick="openAddModal()">
+                    <ion-icon name="add-circle"></ion-icon>
+                    <span>Добавить трек</span>
+                </button>
+            </div>
+        </div>
+
+
+        <div class="track-list" id="admin-track-list" style="display: none;">
+            <!-- Tracks Here -->
+        </div>
+        
+        <div class="track-list" id="admin-album-list" style="display: none;">
+            <!-- Albums Here -->
+        </div>
+    </div>
+
+    <!-- EDIT/ADD MODAL -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h2 id="modal-title">Редактировать трек</h2>
+                <button class="action-btn" onclick="closeModal('edit-modal')"><ion-icon name="close"></ion-icon></button>
+        </div>
+
+            <form id="track-form" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="edit-id">
+                
+                <div class="form-group">
+                    <label class="form-label">Аудиофайл (MP3)</label>
+                    <input type="file" class="form-input" id="edit-audio" accept="audio/*" onchange="extractMetadata(this)">
+                    <div id="audio-preview-name" style="margin-top:5px; font-size:12px; color:var(--text-secondary)"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Информация</label>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="width: 80px; height: 80px; background: #333; border-radius: 8px; overflow: hidden; flex-shrink: 0; position: relative;">
+                            <img id="edit-cover-preview" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                            <input type="file" id="edit-cover" accept="image/*" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" onchange="previewCover(this)">
+                            <div style="position:absolute; bottom:0; left:0; width:100%; text-align:center; font-size:10px; background:rgba(0,0,0,0.5); color:white; pointer-events:none;">Изменить</div>
+                        </div>
+                        <div style="flex:1; display: flex; flex-direction: column; gap: 10px;">
+                            <input type="text" class="form-input" id="edit-title" placeholder="Название трека" required>
+                            <input type="text" class="form-input" id="edit-artist" placeholder="Исполнитель" required>
+                        </div>
+            </div>
+        </div>
+
+                <div class="form-group">
+                    <label class="form-label">Короткая ссылка (Slug)</label>
+                    <input type="text" class="form-input" id="edit-slug" placeholder="например: my-song">
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                        Ссылка: mp3.dreampartners.online/track/<span id="slug-preview">...</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Текст и Тайминг (Lyrics)</label>
+                    <button type="button" class="btn-primary" style="background: #333; margin-bottom: 10px;" onclick="openLyricsStudio()">
+                        <ion-icon name="musical-notes"></ion-icon> Открыть Lyrics Studio
+                    </button>
+                    <textarea class="form-input" id="edit-lyrics" rows="4" placeholder="Формат LRC..."></textarea>
+                </div>
+                
+                <button type="submit" class="btn-primary" id="save-btn">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LYRICS STUDIO MODAL -->
+    <div class="modal-overlay" id="lyrics-modal" style="z-index: 1100;">
+        <div class="modal-window" style="max-width: 1000px; height: 95vh;">
+            <div class="modal-header">
+                <h2>Lyrics Studio</h2>
+                <button class="action-btn" onclick="closeLyricsStudio()"><ion-icon name="close"></ion-icon></button>
+            </div>
+            
+            <div class="ls-guide">
+                <strong>Как пользоваться:</strong>
+                <ol>
+                    <li>Вставьте текст песни в левое поле.</li>
+                    <li>Нажмите кнопку <b>"Распарсить текст"</b> (стрелочка вправо).</li>
+                    <li>Запустите плеер кнопкой Play.</li>
+                    <li>Нажимайте <b>Пробел</b> или кнопку с отпечатком в момент начала каждой строки.</li>
+                    <li>Когда закончите, нажмите <b>"Сохранить лирику"</b>, чтобы применить изменения.</li>
+                    <li><b>ВАЖНО:</b> Не забудьте нажать "Сохранить" в главном окне редактирования трека!</li>
+                </ol>
+            </div>
+
+            <div class="lyrics-studio">
+                <div class="ls-controls">
+                    <button class="action-btn" onclick="lsPlayPause()" id="ls-play-btn"><ion-icon name="play"></ion-icon></button>
+                    <div id="ls-time-display">0:00</div>
+                    <input type="range" id="ls-seek" value="0" min="0" max="100" step="0.1">
+                    <button class="btn-sync-large" onclick="lsSyncCurrentLine()" title="Синхронизировать (Пробел)">
+                        <ion-icon name="finger-print"></ion-icon>
+                    </button>
+                </div>
+
+                <div class="ls-editor-container">
+                    <!-- RAW TEXT PANE -->
+                    <div class="ls-pane">
+                        <div class="ls-header">
+                            <span>1. Исходный текст</span>
+                            <button class="btn-ls-action" onclick="lsParseText()">
+                                Распарсить текст <ion-icon name="arrow-forward"></ion-icon>
+                            </button>
+                    </div>
+                        <textarea class="ls-input" id="ls-raw-input" placeholder="Вставьте текст песни здесь..." oninput="syncFromRawText()"></textarea>
+                </div>
+                    
+                    <!-- SYNC PANE -->
+                    <div class="ls-pane">
+                        <div class="ls-header">
+                            <span>2. Таймлайн (Синхронизация)</span>
+                            <button class="btn-ls-action primary" onclick="lsExport()">
+                                <ion-icon name="checkmark"></ion-icon> Сохранить лирику
+                            </button>
+                </div>
+                        <div class="ls-timeline" id="ls-lines-container">
+                            <!-- Lines will go here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hidden Audio for Lyrics Studio -->
+    <audio id="ls-audio"></audio>
+
+    <script>
+        // Базовый путь для API запросов (убрали, теперь все напрямую)
+        const BASE_PATH = '';
+        
+        let tracks = [];
+        let albums = [];
+        let currentTrackId = null; // For editing
+        let currentAlbumId = null; // For editing
+        
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            
+            if (tab === 'albums') {
+                showAlbumsTab();
+            } else {
+                showTracksTab();
+            }
+            setupSlugPreview();
+        });
+        
+        function showTracksTab() {
+            document.getElementById('admin-track-list').style.display = 'block';
+            document.getElementById('admin-album-list').style.display = 'none';
+            fetchTracks();
+        }
+        
+        function showAlbumsTab() {
+            document.getElementById('admin-track-list').style.display = 'none';
+            document.getElementById('admin-album-list').style.display = 'block';
+            fetchAlbums();
+        }
+        
+        async function fetchTracks() {
+            try {
+                const res = await fetch(`${BASE_PATH}/admin/api/tracks`);
+                if (!res.ok) {
+                    console.error('Failed to fetch tracks:', res.status, res.statusText);
+                    tracks = [];
+                    renderTracks();
+                    return;
+                }
+                tracks = await res.json();
+                if (!Array.isArray(tracks)) {
+                    console.error('Invalid response format:', tracks);
+                    tracks = [];
+                }
+                renderTracks();
+            } catch(e) {
+                console.error('Error fetching tracks:', e);
+                tracks = [];
+                renderTracks();
+            }
+        }
+        
+        function renderTracks() {
+            const container = document.getElementById('admin-track-list');
+            container.innerHTML = '';
+            
+            tracks.forEach(t => {
+                const el = document.createElement('div');
+                el.className = `track-card ${t.hidden ? 'hidden-track' : ''}`;
+                el.innerHTML = `
+                    <div class="drag-handle" onclick="moveTrack('${t.id}', 'up')"><ion-icon name="chevron-up"></ion-icon></div>
+                    ${t.cover_filename && t.cover_filename.trim() ? `<img src="${BASE_PATH}/uploads/${t.cover_filename}" class="card-img">` : '<div class="card-img no-cover"><ion-icon name="musical-notes"></ion-icon></div>'}
+                    <div class="card-info">
+                        <div class="card-title">${t.title}</div>
+                        <div class="card-artist">${t.artist}</div>
+                        ${t.slug ? `<a href="/track/${t.slug}" target="_blank" class="card-slug" onclick="event.stopPropagation();">@${t.slug}</a>` : ''}
+                        <a href="/track/${t.id}" target="_blank" class="card-id" onclick="event.stopPropagation();">ID: ${t.id}</a>
+                        ${t.nickname ? `<div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px;">User: @${t.nickname}</div>` : ''}
+                        ${t.album_names ? `<div style="font-size:11px; color:rgba(250,45,72,0.6); margin-top:4px;">Albums: ${t.album_names}</div>` : ''}
+                        <audio controls class="track-player" preload="none" onplay="pauseOtherPlayers(this)">
+                            <source src="${BASE_PATH}/uploads/${t.filename}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn ${t.is_pinned ? 'primary' : ''}" onclick="togglePin('track', '${t.id}', ${!t.is_pinned})" title="${t.is_pinned ? 'Открепить' : 'Закрепить'}">
+                            <ion-icon name="${t.is_pinned ? 'pricetag' : 'pricetag-outline'}"></ion-icon>
+                        </button>
+                        <button class="action-btn" onclick="toggleVisibility('${t.id}', ${!t.hidden})">
+                            <ion-icon name="${t.hidden ? 'eye-off' : 'eye'}"></ion-icon>
+                        </button>
+                        <button class="action-btn" onclick="openEditModal(${t.id})">
+                            <ion-icon name="create"></ion-icon>
+                        </button>
+                        <button class="action-btn danger" onclick="deleteTrack(${t.id})">
+                            <ion-icon name="trash"></ion-icon>
+                        </button>
+                    </div>
+                    <div class="drag-handle" onclick="moveTrack('${t.id}', 'down')"><ion-icon name="chevron-down"></ion-icon></div>
+                `;
+                container.appendChild(el);
+            });
+        }
+        
+        function pauseOtherPlayers(current) {
+            document.querySelectorAll('audio.track-player').forEach(audio => {
+                if (audio !== current) {
+                    audio.pause();
+                }
+            });
+        }
+
+        // --- MODALS ---
+        function openAddModal() {
+            currentTrackId = null;
+            document.getElementById('modal-title').innerText = 'Добавить новый трек';
+            document.getElementById('track-form').reset();
+            document.getElementById('edit-id').value = '';
+            document.getElementById('edit-cover-preview').style.display = 'none';
+            document.getElementById('slug-preview').innerText = '...';
+            document.getElementById('audio-preview-name').innerText = '';
+            lsAudioBlob = null; // Reset studio audio
+            openModal('edit-modal');
+        }
+        
+        function openEditModal(id) {
+            currentTrackId = id;
+            const t = tracks.find(x => x.id == id);
+            if(!t) return;
+            
+            document.getElementById('modal-title').innerText = 'Редактировать трек';
+            document.getElementById('edit-id').value = t.id;
+            document.getElementById('edit-title').value = t.title;
+            document.getElementById('edit-artist').value = t.artist;
+            document.getElementById('edit-lyrics').value = t.lyrics || '';
+            document.getElementById('edit-slug').value = t.slug || '';
+            document.getElementById('slug-preview').innerText = t.slug || '...';
+            
+            const img = document.getElementById('edit-cover-preview');
+            if(t.cover_filename && t.cover_filename.trim()) {
+                img.src = `${BASE_PATH}/uploads/${t.cover_filename}`;
+                img.style.display = 'block';
+            } else {
+                img.src = '';
+                img.style.display = 'none';
+            }
+            
+            document.getElementById('audio-preview-name').innerText = t.filename;
+            
+            // Prepare studio audio from existing file
+            document.getElementById('ls-audio').src = `${BASE_PATH}/uploads/${t.filename}`;
+            
+            openModal('edit-modal');
+        }
+        
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+            // Stop audio if closing studio
+            if(id === 'lyrics-modal') {
+                document.getElementById('ls-audio').pause();
+            }
+        }
+        
+        function setupSlugPreview() {
+            document.getElementById('edit-slug').addEventListener('input', (e) => {
+                document.getElementById('slug-preview').innerText = e.target.value || '...';
+            });
+        }
+        
+        // --- ACTIONS ---
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('save-btn');
+            btn.disabled = true;
+            btn.innerText = 'Сохранение...';
+            
+            const formData = new FormData();
+            formData.append('title', document.getElementById('edit-title').value);
+            formData.append('artist', document.getElementById('edit-artist').value);
+            formData.append('lyrics', document.getElementById('edit-lyrics').value);
+            formData.append('slug', document.getElementById('edit-slug').value);
+            
+            const audio = document.getElementById('edit-audio').files[0];
+            if(audio) formData.append('audio', audio);
+            
+            const cover = document.getElementById('edit-cover').files[0];
+            if(cover) formData.append('cover', cover);
+            
+            const url = currentTrackId ? `${BASE_PATH}/api/tracks/${currentTrackId}` : `${BASE_PATH}/api/upload`;
+            const method = currentTrackId ? 'PUT' : 'POST';
+            
+            try {
+                const res = await fetch(url, { method, body: formData });
+                const data = await res.json();
+                
+                if(data.error) {
+                    alert(data.error);
+                } else {
+                    closeModal('edit-modal');
+                    fetchTracks();
+                }
+            } catch(err) {
+                alert('Ошибка сохранения трека');
+            }
+            
+            btn.disabled = false;
+            btn.innerText = 'Сохранить';
+        }
+        
+        async function deleteTrack(id) {
+            if(!confirm('Удалить этот трек?')) return;
+            await fetch(`${BASE_PATH}/admin/api/tracks/${id}`, { method: 'DELETE' });
+            fetchTracks();
+        }
+        
+        async function toggleVisibility(id, hidden) {
+            await fetch(`${BASE_PATH}/admin/api/tracks/${id}/toggle-visibility`, {
+                    method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ hidden })
+                });
+            fetchTracks();
+        }
+        
+        async function moveTrack(id, direction) {
+            await fetch(`${BASE_PATH}/api/tracks/${id}/move`, {
+                    method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ direction })
+                });
+            fetchTracks();
+        }
+        
+        async function togglePin(type, id, pin) {
+            const endpoint = type === 'track' ? `/api/tracks/${id}/pin` : `/api/albums/${id}/pin`;
+            await fetch(`${BASE_PATH}${endpoint}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ is_pinned: pin })
+            });
+            if (type === 'track') {
+                fetchTracks();
+            } else {
+                fetchAlbums();
+            }
+        }
+        
+        async function fetchAlbums() {
+            try {
+                const res = await fetch(`${BASE_PATH}/admin/api/albums`);
+                if (!res.ok) {
+                    console.error('Failed to fetch albums:', res.status, res.statusText);
+                    albums = [];
+                    renderAlbums();
+                    return;
+                }
+                albums = await res.json();
+                if (!Array.isArray(albums)) {
+                    console.error('Invalid response format:', albums);
+                    albums = [];
+                }
+                renderAlbums();
+            } catch(e) {
+                console.error('Error fetching albums:', e);
+                albums = [];
+                renderAlbums();
+            }
+        }
+        
+        function renderAlbums() {
+            const container = document.getElementById('admin-album-list');
+            container.innerHTML = '';
+            
+            albums.forEach(a => {
+                const el = document.createElement('div');
+                el.className = `track-card ${a.hidden ? 'hidden-track' : ''}`;
+                el.innerHTML = `
+                    ${a.cover_filename && a.cover_filename.trim() ? `<img src="${BASE_PATH}/uploads/${a.cover_filename}" class="card-img">` : '<div class="card-img no-cover"><ion-icon name="albums"></ion-icon></div>'}
+                    <div class="card-info">
+                        <div class="card-title">${a.title}</div>
+                        <div class="card-artist">${a.description || 'Альбом'}</div>
+                        ${a.slug ? `<a href="/album/${a.slug}" target="_blank" class="card-slug" onclick="event.stopPropagation();">@${a.slug}</a>` : ''}
+                        <a href="/album/${a.id}" target="_blank" class="card-id" onclick="event.stopPropagation();">ID: ${a.id}</a>
+                        ${a.nickname ? `<div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px;">User: @${a.nickname}</div>` : ''}
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn ${a.is_pinned ? 'primary' : ''}" onclick="togglePin('album', '${a.id}', ${!a.is_pinned})" title="${a.is_pinned ? 'Открепить' : 'Закрепить'}">
+                            <ion-icon name="${a.is_pinned ? 'pricetag' : 'pricetag-outline'}"></ion-icon>
+                        </button>
+                        <button class="action-btn" onclick="toggleAlbumVisibility('${a.id}', ${!a.hidden})">
+                            <ion-icon name="${a.hidden ? 'eye-off' : 'eye'}"></ion-icon>
+                        </button>
+                        <button class="action-btn" onclick="openEditAlbumModal(${a.id})">
+                            <ion-icon name="create"></ion-icon>
+                        </button>
+                        <button class="action-btn danger" onclick="deleteAlbum('${a.id}')">
+                            <ion-icon name="trash"></ion-icon>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(el);
+            });
+        }
+        
+        async function toggleAlbumVisibility(id, hidden) {
+            await fetch(`${BASE_PATH}/admin/api/albums/${id}/toggle-visibility`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ hidden })
+            });
+            fetchAlbums();
+        }
+        
+        async function deleteAlbum(id) {
+            if(!confirm('Удалить этот альбом?')) return;
+            await fetch(`${BASE_PATH}/admin/api/albums/${id}`, { method: 'DELETE' });
+            fetchAlbums();
+        }
+        
+        function openEditAlbumModal(id) {
+            // TODO: Реализовать редактирование альбома
+            alert('Редактирование альбома будет реализовано позже');
+        }
+        
+        // --- PREVIEWS & METADATA ---
+        async function extractMetadata(input) {
+            if(!input.files[0]) return;
+            const file = input.files[0];
+            document.getElementById('audio-preview-name').innerText = file.name;
+            
+            // Set Studio Audio
+            const url = URL.createObjectURL(file);
+            document.getElementById('ls-audio').src = url;
+            
+            if(currentTrackId) return; // Don't overwrite if editing
+            
+            const formData = new FormData();
+            formData.append('audio', file);
+            
+            try {
+                const res = await fetch(`${BASE_PATH}/api/extract-metadata`, { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.title) document.getElementById('edit-title').value = data.title;
+                if(data.artist) document.getElementById('edit-artist').value = data.artist;
+                
+                // Обрабатываем обложку
+                const coverPreview = document.getElementById('edit-cover-preview');
+                if(data.cover && data.cover.trim()) {
+                    coverPreview.src = data.cover;
+                    coverPreview.style.display = 'block';
+                    console.log('Cover extracted and displayed');
+                } else {
+                    // Если обложка не найдена, скрываем превью
+                    coverPreview.src = '';
+                    coverPreview.style.display = 'none';
+                    console.log('No cover found in MP3 file');
+                }
+            } catch(error) {
+                console.error('Error extracting metadata:', error);
+            }
+        }
+        
+        function previewCover(input) {
+            if(input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('edit-cover-preview').src = e.target.result;
+                    document.getElementById('edit-cover-preview').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // ==========================================
+        // === LYRICS STUDIO LOGIC ===
+        // ==========================================
+        let lsLines = []; // { text: string, time: float | null }
+        const lsAudio = document.getElementById('ls-audio');
+        let activeLineIndex = 0;
+        let isSyncing = false; // Флаг для предотвращения бесконечного цикла синхронизации
+        
+        function openLyricsStudio() {
+            // Populate Raw Input from Main Lyrics - сначала устанавливаем значение без парсинга
+            const currentLyrics = document.getElementById('edit-lyrics').value;
+            document.getElementById('ls-raw-input').value = currentLyrics || '';
+            
+            if(currentLyrics) {
+                // Используем parseLRC для правильного парсинга со спейсерами
+                // skipSync = true, чтобы не перезаписывать Raw Text (он уже установлен выше)
+                parseLRC(currentLyrics, true);
+                } else {
+                lsLines = [];
+                renderLsLines();
+            }
+            openModal('lyrics-modal');
+        }
+        
+        function closeLyricsStudio() {
+            closeModal('lyrics-modal');
+        }
+        
+        // 1. Parse Raw Text (парсит LRC формат) - использует syncFromRawText
+        function lsParseText() {
+            syncFromRawText();
+        }
+        
+        function parseLRC(lrc, skipSync = false) {
+            const lines = lrc.split('\n');
+            // Поддержка форматов: [mm:ss.xx], [mm:ss:xx], [mm:ss]
+            const regex1 = /\[(\d{1,2}):(\d{2})\.(\d+)\](.*)/; // [mm:ss.xx]
+            const regex2 = /\[(\d{1,2}):(\d{2}):(\d+)\](.*)/; // [mm:ss:xx] - двоеточие для миллисекунд
+            const regex3 = /\[(\d{1,2}):(\d{2})\](.*)/; // [mm:ss]
+            lsLines = [];
+            const seen = new Set(); // Для дедупликации
+            let lastTime = 0; // Для сохранения порядка пустых строк
+            let spacerCounter = 0; // Счетчик для сохранения порядка последовательных пустых строк
+            
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                
+                // Сохраняем пустые строки как спейсеры, привязывая их к предыдущему времени
+                if(!trimmed) {
+                    spacerCounter++;
+                    // Добавляем микро-время с учетом счетчика, чтобы сохранить порядок спейсеров
+                    lsLines.push({ time: lastTime + (0.0001 * spacerCounter), text: '', isSpacer: true });
+                    return;
+                }
+                
+                let match = trimmed.match(regex1); // [mm:ss.xx]
+                if(match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const ms = parseInt(match[3]);
+                    const time = minutes * 60 + seconds + (ms / 100);
+                    const text = match[4].trim();
+                    const key = `${time}:${text}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        lsLines.push({ time, text: text || '' });
+                        lastTime = time;
+                        spacerCounter = 0; // Сбрасываем счетчик
+                    }
+                    return;
+                }
+                
+                match = trimmed.match(regex2); // [mm:ss:xx] - двоеточие для миллисекунд
+                if(match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const ms = parseInt(match[3]);
+                    const time = minutes * 60 + seconds + (ms / 100);
+                    const text = match[4].trim();
+                    const key = `${time}:${text}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        lsLines.push({ time, text: text || '' });
+                        lastTime = time;
+                        spacerCounter = 0;
+                    }
+                    return;
+                }
+                
+                match = trimmed.match(regex3); // [mm:ss]
+                if(match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const time = minutes * 60 + seconds;
+                    const text = match[3].trim();
+                    const key = `${time}:${text}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        lsLines.push({ time, text: text || '' });
+                        lastTime = time;
+                        spacerCounter = 0;
+                    }
+                    return;
+                }
+                
+                // Строка без таймкода - тоже привязываем
+                if(!trimmed.startsWith('[')) {
+                    const key = `null:${trimmed}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        spacerCounter++;
+                        lsLines.push({ time: lastTime + (0.0001 * spacerCounter), text: trimmed });
+                    }
+                }
+            });
+            
+            activeLineIndex = 0;
+            renderLsLines();
+            if(!skipSync) {
+                syncRawText(); // Синхронизируем Raw Text с полным LRC
+            }
+        }
+        
+        // Синхронизация Raw Text с Timeline (обновляет левое поле при изменениях справа)
+        function syncRawText() {
+            if(isSyncing) return; // Предотвращаем цикл
+            isSyncing = true;
+            
+            // Сортируем строки по времени (как в Timeline) - строки без времени в конце
+            const sortedLines = [...lsLines].sort((a, b) => {
+                if(a.time === null && b.time === null) return 0;
+                if(a.time === null) return 1; // Без времени в конец
+                if(b.time === null) return -1;
+                // Точная сортировка
+                return a.time - b.time;
+            });
+            
+            const lrcParts = [];
+            
+            sortedLines.forEach((l) => {
+                // Если есть время
+                if(l.time !== null && !isNaN(l.time)) {
+                    // Если это спейсер - выводим пустую строку без таймкода
+                    if (l.isSpacer) {
+                        lrcParts.push('');
+                } else {
+                        // Обычная строка с таймкодом
+                        const m = Math.floor(l.time / 60);
+                        const s = (l.time % 60).toFixed(2);
+                        const mm = m < 10 ? '0' + m : m.toString();
+                        const ss = parseFloat(s).toFixed(2);
+                        const ssFormatted = ss < 10 ? '0' + ss : ss;
+                        const text = (l.text || '').trim();
+                        lrcParts.push(`[${mm}:${ssFormatted}]${text}`);
+                    }
+                } else if(l.text && l.text.trim()) {
+                    // Строки без времени - только если есть текст
+                    lrcParts.push(l.text.trim());
+                } else if(!l.text || !l.text.trim()) {
+                    // Пустая строка без времени - сохраняем как пустую строку для форматирования
+                    lrcParts.push('');
+                }
+            });
+            
+            // Убираем пустые строки в конце, но сохраняем в середине
+            while(lrcParts.length > 0 && lrcParts[lrcParts.length - 1] === '') {
+                lrcParts.pop();
+            }
+            
+            const lrc = lrcParts.join('\n');
+            document.getElementById('ls-raw-input').value = lrc;
+            
+            setTimeout(() => { isSyncing = false; }, 100);
+        }
+        
+        // Синхронизация Timeline из Raw Text (обновляет правое поле при изменениях слева)
+        function syncFromRawText() {
+            if(isSyncing) return; // Предотвращаем цикл
+            isSyncing = true;
+            
+            const raw = document.getElementById('ls-raw-input').value;
+            if(!raw.trim()) {
+                lsLines = [];
+                renderLsLines();
+                setTimeout(() => { isSyncing = false; }, 100);
+                return;
+            }
+            
+            // Парсим LRC формат
+            const lines = raw.split('\n');
+            // Поддержка форматов: [mm:ss.xx], [mm:ss:xx], [mm:ss]
+            const regex1 = /\[(\d{1,2}):(\d{2})\.(\d+)\](.*)/; // [mm:ss.xx]
+            const regex2 = /\[(\d{1,2}):(\d{2}):(\d+)\](.*)/; // [mm:ss:xx] - двоеточие для миллисекунд
+            const regex3 = /\[(\d{1,2}):(\d{2})\](.*)/; // [mm:ss]
+            const newLines = [];
+            const seen = new Set(); // Для дедупликации
+            
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                
+                // Сохраняем пустые строки
+                if(!trimmed) {
+                    newLines.push({ time: null, text: '' });
+                    return;
+                }
+                
+                let match = trimmed.match(regex1); // [mm:ss.xx]
+                if(match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const ms = parseInt(match[3]);
+                    const time = minutes * 60 + seconds + (ms / 100);
+                    const text = match[4].trim();
+                    const key = `${time}:${text}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        newLines.push({ time, text: text || '' });
+                    }
+                    return;
+                }
+                
+                match = trimmed.match(regex2); // [mm:ss:xx] - двоеточие для миллисекунд
+                if(match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const ms = parseInt(match[3]);
+                    const time = minutes * 60 + seconds + (ms / 100);
+                    const text = match[4].trim();
+                    const key = `${time}:${text}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        newLines.push({ time, text: text || '' });
+                    }
+                    return;
+                }
+                
+                match = trimmed.match(regex3); // [mm:ss]
+                if(match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const time = minutes * 60 + seconds;
+                    const text = match[3].trim();
+                    const key = `${time}:${text}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        newLines.push({ time, text: text || '' });
+                    }
+                    return;
+                }
+                
+                // Строка без таймкода
+                if(!trimmed.startsWith('[')) {
+                    const key = `null:${trimmed}`;
+                    if(!seen.has(key)) {
+                        seen.add(key);
+                        newLines.push({ time: null, text: trimmed });
+                    }
+                }
+            });
+            
+            lsLines = newLines;
+            
+            // Сохраняем активную строку если возможно
+            if(activeLineIndex >= lsLines.length) {
+                activeLineIndex = Math.max(0, lsLines.length - 1);
+            }
+            if(editingIndex >= lsLines.length) {
+                editingIndex = -1;
+            }
+            
+            renderLsLines();
+            
+            setTimeout(() => { isSyncing = false; }, 100);
+        }
+        
+        // 2. Render Timeline
+        let editingIndex = -1;
+        let editingTimeIndex = -1; // Индекс строки, у которой редактируется время
+        
+        function renderLsLines() {
+            const container = document.getElementById('ls-lines-container');
+            container.innerHTML = '';
+            
+            // Дедупликация: убираем дубликаты по времени и тексту (с точностью до 0.01 секунды)
+            const seen = new Map(); // key -> индекс в uniqueLines
+            const uniqueLines = [];
+            const indexMap = new Map(); // Старый индекс -> новый индекс
+            
+            lsLines.forEach((line, oldIdx) => {
+                // Используем округленное время для дедупликации (точность 0.01 секунды)
+                const timeKey = line.time !== null ? Math.round(line.time * 100) / 100 : null;
+                const key = `${timeKey}:${line.text || ''}`;
+                
+                if(seen.has(key)) {
+                    // Дубликат - используем существующий индекс
+                    const existingIdx = seen.get(key);
+                    indexMap.set(oldIdx, existingIdx);
+                } else {
+                    // Новая уникальная строка
+                    const newIdx = uniqueLines.length;
+                    uniqueLines.push(line);
+                    seen.set(key, newIdx);
+                    indexMap.set(oldIdx, newIdx);
+                }
+            });
+            
+            // Обновляем индексы редактирования
+            if(activeLineIndex >= 0 && indexMap.has(activeLineIndex)) {
+                activeLineIndex = indexMap.get(activeLineIndex);
+            }
+            if(editingIndex >= 0 && indexMap.has(editingIndex)) {
+                editingIndex = indexMap.get(editingIndex);
+            }
+            if(editingTimeIndex >= 0 && indexMap.has(editingTimeIndex)) {
+                editingTimeIndex = indexMap.get(editingTimeIndex);
+            }
+            
+            // Обновляем lsLines на уникальные строки
+            lsLines = uniqueLines;
+            
+            // Сортируем строки по времени (строки без времени в конце)
+            const sortedLines = [...lsLines].sort((a, b) => {
+                if(a.time === null && b.time === null) return 0;
+                if(a.time === null) return 1; // Без времени в конец
+                if(b.time === null) return -1;
+                // Сортируем точно по времени, без округления, чтобы сохранить порядок спейсеров
+                return a.time - b.time;
+            });
+            
+            // Создаем маппинг: оригинальный индекс -> отсортированный индекс
+            const originalToSorted = new Map();
+            sortedLines.forEach((sortedLine, sortedIdx) => {
+                // Находим индекс в оригинальном массиве
+                const originalIdx = lsLines.findIndex((l, idx) => {
+                    // Используем точное сравнение объектов
+                    return l === sortedLine;
+                });
+                if(originalIdx >= 0) {
+                    originalToSorted.set(originalIdx, sortedIdx);
+                }
+            });
+            
+            // Обновляем activeLineIndex на отсортированный индекс
+            let sortedActiveIndex = -1;
+            if(activeLineIndex >= 0 && activeLineIndex < lsLines.length) {
+                sortedActiveIndex = originalToSorted.get(activeLineIndex) || -1;
+            }
+            
+            sortedLines.forEach((line, sortedIdx) => {
+                const idx = lsLines.findIndex(l => l === line);
+                
+                // Пропускаем пустые строки без времени - они не отображаются в Timeline
+                const isEmpty = !line.text || !line.text.trim();
+                if(isEmpty && line.time === null) {
+                    return; // Не рендерим пустые строки в Timeline, они только в Raw Text
+                }
+                
+                const isActive = sortedIdx === sortedActiveIndex;
+                const div = document.createElement('div');
+                div.className = `ls-line ${isActive ? 'active' : ''}`;
+                
+                if(editingIndex === idx) {
+                    // Режим редактирования текста
+                    div.innerHTML = `
+                        <div class="ls-time">${line.time !== null ? formatTime(line.time) : '--:--'}</div>
+                        <input type="text" class="ls-text-input" value="${line.text}" 
+                               oninput="updateLineText(${idx}, this.value)"
+                               onblur="finishEdit(${idx}, this.value)" 
+                               onkeydown="handleEditKey(event, ${idx}, this)">
+                        <div class="ls-actions">
+                            <button class="ls-btn-small" onclick="event.stopPropagation(); const input = this.closest('.ls-line').querySelector('.ls-text-input'); if(input) finishEdit(${idx}, input.value)" title="Save">
+                                <ion-icon name="checkmark"></ion-icon>
+                            </button>
+                            <button class="ls-btn-small" onclick="event.stopPropagation(); cancelEdit()" title="Cancel">
+                                <ion-icon name="close"></ion-icon>
+                            </button>
+                        </div>
+                    `;
+                } else if(editingTimeIndex === idx) {
+                    // Режим редактирования времени
+                    const currentTime = line.time !== null ? line.time : lsAudio.currentTime;
+                    const m = Math.floor(currentTime / 60);
+                    const s = (currentTime % 60).toFixed(2);
+                    const mm = m < 10 ? '0' + m : m.toString();
+                    const ss = parseFloat(s).toFixed(2);
+                    const ssFormatted = ss < 10 ? '0' + ss : ss;
+                    
+                    div.innerHTML = `
+                        <input type="text" class="ls-time-input" value="${mm}:${ssFormatted}" 
+                               onblur="finishTimeEdit(${idx}, this.value)" 
+                               onkeydown="handleTimeEditKey(event, ${idx}, this)"
+                               placeholder="mm:ss.xx">
+                        <div class="ls-text" style="${!line.text ? 'opacity: 0.5; font-style: italic;' : ''}">${line.text || '(empty)'}</div>
+                        <div class="ls-actions">
+                            <button class="ls-btn-small" onclick="event.stopPropagation(); const input = this.closest('.ls-line').querySelector('.ls-time-input'); if(input) finishTimeEdit(${idx}, input.value)" title="Save">
+                                <ion-icon name="checkmark"></ion-icon>
+                            </button>
+                            <button class="ls-btn-small" onclick="event.stopPropagation(); cancelTimeEdit()" title="Cancel">
+                                <ion-icon name="close"></ion-icon>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Обычный режим
+                    const isEmpty = !line.text || !line.text.trim();
+                    div.onclick = () => {
+                        activeLineIndex = idx;
+                        renderLsLines();
+                        if(line.time !== null) lsAudio.currentTime = line.time;
+                    };
+                    
+                    div.innerHTML = `
+                        <div class="ls-time" onclick="event.stopPropagation(); startTimeEdit(${idx})" style="cursor: pointer;" title="Click to edit time">${line.time !== null ? formatTime(line.time) : '--:--'}</div>
+                        <div class="ls-text" ondblclick="startEdit(${idx})" style="${isEmpty ? 'opacity: 0.5; font-style: italic;' : ''}">${line.text || '(empty)'}</div>
+                        <div class="ls-actions">
+                            <button class="ls-btn-small" onclick="event.stopPropagation(); startEdit(${idx})" title="Edit text">
+                                <ion-icon name="create"></ion-icon>
+                            </button>
+                            ${line.time === null ? `<button class="ls-btn-small" onclick="event.stopPropagation(); setCurrentTime(${idx})" title="Set current time">⏱</button>` : ''}
+                            <button class="ls-btn-small" onclick="event.stopPropagation(); deleteLine(${idx})" title="Delete">
+                                <ion-icon name="trash"></ion-icon>
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                container.appendChild(div);
+            });
+            
+            // Добавляем кнопку "Add Line" в конец
+            const addBtn = document.createElement('div');
+            addBtn.className = 'ls-line';
+            addBtn.style.justifyContent = 'center';
+            addBtn.style.cursor = 'pointer';
+            addBtn.style.background = 'rgba(250, 45, 72, 0.1)';
+            addBtn.innerHTML = `
+                <button class="ls-btn-small" onclick="addNewLine()" style="background: var(--accent); width: auto; padding: 5px 15px;">
+                    <ion-icon name="add"></ion-icon> Add Line
+                </button>
+            `;
+            container.appendChild(addBtn);
+            
+            // Auto scroll to active (находим элемент с классом active)
+            const activeEl = container.querySelector('.ls-line.active');
+            if(activeEl) {
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        function formatTime(s) {
+            if(s === null || isNaN(s)) return '--:--';
+            const m = Math.floor(s / 60);
+            const s_float = s % 60;
+            const sec = Math.floor(s_float);
+            const ms = Math.floor((s_float % 1) * 100);
+            return `[${m < 10 ? '0' + m : m}:${sec < 10 ? '0' + sec : sec}.${ms < 10 ? '0' + ms : ms}]`;
+        }
+        
+        function startEdit(idx) {
+            editingIndex = idx;
+            editingTimeIndex = -1; // Отменяем редактирование времени если было
+            renderLsLines();
+            // Фокус на поле ввода текста
+            setTimeout(() => {
+                const input = document.querySelector('.ls-text-input');
+                if(input) input.focus();
+            }, 50);
+        }
+        
+        // Обновление текста строки в реальном времени (при вводе)
+        function updateLineText(idx, newText) {
+            if(idx >= 0 && idx < lsLines.length) {
+                lsLines[idx].text = newText; // Сохраняем без trim для реального времени
+                // Синхронизируем Raw Text в реальном времени с небольшой задержкой для производительности
+                clearTimeout(updateLineText.timeout);
+                updateLineText.timeout = setTimeout(() => {
+                    syncRawText();
+                }, 100);
+            }
+        }
+        
+        function finishEdit(idx, newText) {
+            if(idx >= 0 && idx < lsLines.length) {
+                const trimmed = (newText || '').trim();
+                lsLines[idx].text = trimmed;
+            }
+            editingIndex = -1;
+            renderLsLines();
+            // Синхронизируем после небольшой задержки, чтобы убедиться что все обновилось
+            setTimeout(() => {
+                syncRawText();
+            }, 10);
+        }
+        
+        function cancelEdit() {
+            editingIndex = -1;
+            renderLsLines();
+        }
+        
+        function handleEditKey(e, idx, input) {
+            if(e.key === 'Enter') {
+                e.preventDefault();
+                finishEdit(idx, input.value);
+            } else if(e.key === 'Escape') {
+                e.preventDefault();
+                cancelEdit();
+            }
+        }
+        
+        function addNewLine() {
+            // Создаем строку с текущим временем трека
+            const currentTime = lsAudio.currentTime || 0;
+            const newLine = { text: '', time: currentTime };
+            lsLines.push(newLine);
+            
+            // Синхронизируем сразу после добавления
+            syncRawText();
+            
+            // Находим индекс новой строки после сортировки (в renderLsLines происходит сортировка)
+            renderLsLines();
+            
+            // Находим индекс новой строки после сортировки
+            const sortedIndex = lsLines.findIndex(l => l === newLine);
+            if(sortedIndex >= 0) {
+                activeLineIndex = sortedIndex;
+                editingTimeIndex = sortedIndex; // Редактируем время
+                renderLsLines();
+                // Синхронизируем после рендера с задержкой
+                setTimeout(() => {
+                    syncRawText();
+                }, 10);
+            }
+            
+            // Фокус на поле ввода времени
+            setTimeout(() => {
+                const input = document.querySelector('.ls-time-input');
+                if(input) {
+                    input.focus();
+                    input.select();
+                }
+            }, 50);
+        }
+        
+        function deleteLine(idx) {
+            if(confirm('Delete this line?')) {
+                lsLines.splice(idx, 1);
+                if(activeLineIndex >= lsLines.length) activeLineIndex = lsLines.length - 1;
+                if(activeLineIndex < 0) activeLineIndex = 0;
+                editingIndex = -1;
+                editingTimeIndex = -1;
+                renderLsLines();
+                syncRawText();
+            }
+        }
+        
+        function startTimeEdit(idx) {
+            editingTimeIndex = idx;
+            editingIndex = -1; // Отменяем редактирование текста если было
+            renderLsLines();
+            // Фокус на поле ввода времени
+            setTimeout(() => {
+                const input = document.querySelector('.ls-time-input');
+                if(input) {
+                    input.focus();
+                    input.select();
+                }
+            }, 50);
+        }
+        
+        function finishTimeEdit(idx, timeStr) {
+            if(idx >= 0 && idx < lsLines.length) {
+                // Парсим время в формате mm:ss.xx или mm:ss
+                const timeMatch = timeStr.match(/(\d{1,2}):(\d{2}(?:\.\d+)?)/);
+                if(timeMatch) {
+                    const minutes = parseInt(timeMatch[1]);
+                    const seconds = parseFloat(timeMatch[2]);
+                    const time = minutes * 60 + seconds;
+                    lsLines[idx].time = time;
+                } else {
+                    // Если не удалось распарсить, используем текущее время трека
+                    lsLines[idx].time = lsAudio.currentTime || 0;
+                }
+            }
+            editingTimeIndex = -1;
+            renderLsLines();
+            // Синхронизируем после небольшой задержки
+            setTimeout(() => {
+                syncRawText();
+            }, 10);
+        }
+        
+        function cancelTimeEdit() {
+            editingTimeIndex = -1;
+            renderLsLines();
+        }
+        
+        function handleTimeEditKey(e, idx, input) {
+            if(e.key === 'Enter') {
+                e.preventDefault();
+                finishTimeEdit(idx, input.value);
+            } else if(e.key === 'Escape') {
+                e.preventDefault();
+                cancelTimeEdit();
+            }
+        }
+        
+        function setCurrentTime(idx) {
+            if(idx >= 0 && idx < lsLines.length) {
+                lsLines[idx].time = lsAudio.currentTime || 0;
+                renderLsLines();
+                syncRawText();
+            }
+        }
+        
+        // 3. Player Controls
+        function lsPlayPause() {
+            if(lsAudio.paused) {
+                lsAudio.play();
+                document.getElementById('ls-play-btn').innerHTML = '<ion-icon name="pause"></ion-icon>';
+                } else {
+                lsAudio.pause();
+                document.getElementById('ls-play-btn').innerHTML = '<ion-icon name="play"></ion-icon>';
+            }
+        }
+        
+        lsAudio.addEventListener('timeupdate', () => {
+            const t = lsAudio.currentTime;
+            if(!isNaN(t)) {
+                document.getElementById('ls-time-display').innerText = formatTime(t);
+                const duration = lsAudio.duration;
+                if(!isNaN(duration) && duration > 0) {
+                    document.getElementById('ls-seek').value = (t / duration) * 100;
+                }
+            }
+        });
+
+        document.getElementById('ls-seek').addEventListener('input', (e) => {
+            const pct = e.target.value;
+            lsAudio.currentTime = (pct / 100) * lsAudio.duration;
+        });
+        
+        // 4. Sync Logic - создает новую строку с текущим временем и сразу в режим редактирования
+        function lsSyncCurrentLine() {
+            const currentTime = lsAudio.currentTime;
+            
+            // Создаем новую строку с текущим временем
+            const newLine = { text: '', time: currentTime };
+            lsLines.push(newLine);
+            
+            // Синхронизируем сразу после добавления
+            syncRawText();
+            
+            // Находим индекс новой строки после сортировки (в renderLsLines происходит сортировка)
+            renderLsLines();
+            
+            // Находим индекс новой строки после сортировки
+            const sortedIndex = lsLines.findIndex(l => l === newLine);
+            if(sortedIndex >= 0) {
+                activeLineIndex = sortedIndex;
+                editingIndex = sortedIndex; // Сразу в режим редактирования текста
+                renderLsLines();
+                // Синхронизируем после рендера с задержкой
+                setTimeout(() => {
+                    syncRawText();
+                }, 10);
+            }
+            
+            // Фокус на поле ввода текста
+            setTimeout(() => {
+                const input = document.querySelector('.ls-text-input');
+                if(input) input.focus();
+            }, 50);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if(!document.getElementById('lyrics-modal').classList.contains('open')) return;
+            
+            // Пробел работает только если НЕ в режиме редактирования
+            if(e.code === 'Space' && editingIndex === -1) {
+                e.preventDefault(); // Prevent scroll
+                lsSyncCurrentLine();
+            }
+            if(e.code === 'KeyP' && editingIndex === -1) {
+                e.preventDefault();
+                lsPlayPause();
+            }
+        });
+        
+        // 5. Export
+        function lsExport() {
+            // Используем Raw Text напрямую, чтобы сохранить все пустые строки
+            // Сначала синхронизируем Raw Text с Timeline (если были изменения)
+            syncRawText();
+            
+            // Затем берем Raw Text напрямую - он уже содержит все пустые строки
+            const rawText = document.getElementById('ls-raw-input').value;
+            
+            // Убираем только пустые строки в самом конце
+            const lines = rawText.split('\n');
+            while(lines.length > 0 && !lines[lines.length - 1].trim()) {
+                lines.pop();
+            }
+            
+            const lrc = lines.join('\n');
+            document.getElementById('edit-lyrics').value = lrc;
+            closeLyricsStudio();
+        }
+
+    </script>
+</body>
+</html>

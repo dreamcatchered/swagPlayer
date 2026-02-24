@@ -1,0 +1,99 @@
+<!-- МОДУЛЬНЫЙ ПЛЕЕР - используется везде -->
+<!-- ФОНОВЫЙ АУДИО -->
+<audio id="audio-element" playsinline preload="metadata" webkit-playsinline crossorigin="anonymous"></audio>
+
+<!-- MINI PLAYER -->
+<div class="mini-player hidden" id="mini-player" onclick="if(typeof expandPlayer === 'function') expandPlayer()">
+    <img src="" class="mini-cover" id="mini-cover">
+    <div class="mini-info">
+        <div class="mini-title" id="mini-title">Not Playing</div>
+        <div class="mini-artist" id="mini-artist"></div>
+    </div>
+    <div class="mini-controls">
+        <div onclick="event.stopPropagation(); if(typeof prevTrack === 'function') prevTrack()">
+            <ion-icon name="play-back"></ion-icon>
+        </div>
+        <div id="mini-play-btn" onclick="event.stopPropagation(); if(typeof togglePlay === 'function') togglePlay()">
+            <ion-icon name="play"></ion-icon>
+        </div>
+        <div onclick="event.stopPropagation(); if(typeof nextTrack === 'function') nextTrack()">
+            <ion-icon name="play-forward"></ion-icon>
+        </div>
+        <div class="mini-like-btn" id="mini-like-btn" onclick="event.stopPropagation(); if(typeof toggleCurrentTrackLike === 'function') toggleCurrentTrackLike()" title="Лайк">
+            <ion-icon name="heart-outline" id="mini-like-icon"></ion-icon>
+        </div>
+        <div class="mini-volume-btn" onclick="event.stopPropagation(); if(typeof toggleMiniVolume === 'function') toggleMiniVolume()" title="Громкость">
+            <ion-icon name="volume-high" id="mini-volume-icon"></ion-icon>
+            <div class="mini-volume-container" id="mini-volume-container" onclick="event.stopPropagation();" style="display: none;">
+                <div class="mini-volume-slider-wrapper">
+                    <input type="range" class="mini-volume-slider" id="mini-volume-slider" min="0" max="1" step="0.01" value="1" orient="vertical">
+                </div>
+            </div>
+        </div>
+        <div onclick="event.stopPropagation(); if(typeof closeTrack === 'function') closeTrack()" class="mini-close-btn">
+            <ion-icon name="close"></ion-icon>
+        </div>
+    </div>
+</div>
+
+<!-- FULL PLAYER OVERLAY -->
+<div class="full-player" id="full-player">
+    <div class="player-bg" id="player-bg"></div>
+    <div class="player-header">
+        <button class="close-btn" onclick="if(typeof collapsePlayer === 'function') collapsePlayer()">
+            <ion-icon name="chevron-down"></ion-icon>
+        </button>
+    </div>
+    <div class="player-content">
+        <div class="visual-container">
+            <img src="" class="album-art-large" id="full-cover" style="display: block;">
+            <div class="lyrics-wrapper" id="lyrics-wrapper">
+                <div class="lyrics-scroll" id="lyrics-container"></div>
+            </div>
+        </div>
+        <div class="player-track-info">
+            <div class="player-track-text">
+                <h2 id="full-title">Title</h2>
+                <p id="full-artist">Artist</p>
+            </div>
+            <button class="btn-lyrics-toggle" id="lyrics-btn" onclick="if(typeof toggleLyricsView === 'function') toggleLyricsView()">
+                <ion-icon name="text"></ion-icon>
+            </button>
+        </div>
+        <div class="progress-area" id="progress-area">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="time-codes">
+                <span id="curr-time">0:00</span>
+                <span id="dur-time">0:00</span>
+            </div>
+        </div>
+        <div class="main-controls">
+            <button class="control-btn" onclick="if(typeof prevTrack === 'function') prevTrack()">
+                <ion-icon name="play-skip-back"></ion-icon>
+            </button>
+            <button class="control-btn play-large" id="full-play-btn" onclick="if(typeof togglePlay === 'function') togglePlay()">
+                <ion-icon name="play-circle"></ion-icon>
+            </button>
+            <button class="control-btn" onclick="if(typeof nextTrack === 'function') nextTrack()">
+                <ion-icon name="play-skip-forward"></ion-icon>
+            </button>
+        </div>
+        <div class="player-like-section" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px;">
+            <button class="player-like-btn" id="player-like-btn" onclick="if(typeof toggleCurrentTrackLike === 'function') toggleCurrentTrackLike()" style="background: rgba(255,255,255,0.1); border: none; color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <ion-icon name="heart-outline" id="player-like-icon" style="font-size: 20px;"></ion-icon>
+                <span id="player-likes-count" style="font-size: 14px; font-weight: 500;">0</span>
+            </button>
+            <button class="player-share-btn" id="player-share-btn" onclick="if(typeof shareCurrentTrack === 'function') shareCurrentTrack()" style="background: rgba(255,255,255,0.1); border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" title="Поделиться треком">
+                <ion-icon name="share-social" style="font-size: 20px;"></ion-icon>
+            </button>
+        </div>
+        <div class="bottom-controls">
+            <ion-icon name="volume-low-outline" style="font-size: 20px; opacity: 0.7"></ion-icon>
+            <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="1">
+            <ion-icon name="volume-high-outline" style="font-size: 20px; opacity: 0.7"></ion-icon>
+        </div>
+    </div>
+</div>
+
