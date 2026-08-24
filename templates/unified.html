@@ -2,25 +2,35 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% if page_title %}{{ page_title }} - {% endif %}SwagPlayer</title>
-    
+
     {% if shared_track %}
     <meta property="og:title" content="{{ shared_track.title }}">
     <meta property="og:description" content="{{ shared_track.artist }}">
-    {% if shared_track.cover_filename %}
-    <meta property="og:image" content="{{ request.url_root }}uploads/{{ shared_track.cover_filename }}">
+    {% if shared_track.cover_url %}
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ shared_track.cover_url }}">
     {% endif %}
     {% elif shared_album %}
     <meta property="og:title" content="{{ shared_album.title }}">
     <meta property="og:description" content="{{ shared_album.description or 'Альбом' }}">
-    {% if shared_album.cover_filename %}
-    <meta property="og:image" content="{{ request.url_root }}uploads/{{ shared_album.cover_filename }}">
+    {% if shared_album.cover_url %}
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ shared_album.cover_url }}">
     {% endif %}
     {% endif %}
+
     
     <meta name="theme-color" content="#000000">
-    <link rel="icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SwagPlayer">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" href="/favicon.ico">
+    
+    <style>@view-transition { navigation: auto; }</style>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,19 +39,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="/static/css/unified.css">
+    <link rel="stylesheet" href="{{ asset('css/unified.css') }}">
 </head>
 <body>
     <audio id="audio" preload="metadata"></audio>
     
-    <!-- AUTH OVERLAY -->
+    
     <div id="auth-overlay" class="auth-overlay" style="display:none;">
         <div class="text-center"><div class="spinner mx-auto mb-4"></div><p class="text-zinc-400">Авторизация...</p></div>
     </div>
     
-    <!-- MAIN APP -->
+    
     <div id="app" class="app-container">
-        <!-- HEADER -->
+        
         <header class="app-header">
             <div class="header-left">
                 <button id="back-btn" class="icon-btn" style="display:none;" onclick="goBack()">
@@ -58,7 +68,7 @@
             </div>
         </header>
         
-        <!-- SEARCH -->
+        
         <div id="search-bar" class="search-bar" style="display:none;">
             <form onsubmit="performSearch(event)">
                 <i data-lucide="search" class="search-icon"></i>
@@ -66,7 +76,7 @@
             </form>
         </div>
         
-        <!-- TABS -->
+        
         <div class="tabs-container" id="nav-tabs">
             <div class="tab active" data-tab="all" onclick="switchTab('all')">Всё</div>
             <div class="tab" data-tab="tracks" onclick="switchTab('tracks')">Треки</div>
@@ -74,7 +84,7 @@
             <div class="tab" data-tab="my" onclick="switchTab('my')">Моё</div>
         </div>
         
-        <!-- CONTENT -->
+        
         <main class="content-scroll" id="main-content">
             <section id="tracks-section" class="section">
                 <h2 class="section-title"><i data-lucide="music" class="w-5 h-5"></i> Треки</h2>
@@ -100,9 +110,9 @@
         </main>
     </div>
     
-    <!-- MINI PLAYER -->
+    
     <div id="mini-player" class="mini-player" onclick="expandPlayer()">
-        <img id="mini-cover" src="" class="mini-cover">
+        <img id="mini-cover" src="/static/img/icon-192.png" class="mini-cover" alt="" onerror="this.src='/static/img/icon-192.png'">
         <div class="mini-info">
             <div id="mini-title" class="mini-title">Не воспроизводится</div>
             <div id="mini-artist" class="mini-artist"></div>
@@ -115,15 +125,18 @@
                 <i data-lucide="volume-2" class="w-5 h-5"></i>
                 <div class="volume-popup" id="mini-vol-popup"><input type="range" id="mini-vol-slider" min="0" max="1" step="0.01" value="1" orient="vertical"></div>
             </button>
+            <button class="mini-close-btn" onclick="window.SwagPlayer?.closeTrack()" aria-label="закрыть"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
     </div>
     
-    <!-- FULL PLAYER -->
+    
     <div id="full-player" class="full-player">
         <div id="player-wrapper" class="player-wrapper">
-            <!-- PLAYER SECTION -->
+            
             <div id="player-section" class="player-section">
-                <button class="close-btn" onclick="collapsePlayer()"><i data-lucide="chevron-down" class="w-8 h-8"></i></button>
+                {% if not shared_track %}
+                <button type="button" class="close-btn" onclick="collapsePlayer()"><i data-lucide="chevron-down" class="w-8 h-8"></i></button>
+                {% endif %}
                 
                 <div class="art-container">
                     <div id="art-card" class="art-card"></div>
@@ -165,15 +178,15 @@
                 </div>
             </div>
             
-            <!-- LYRICS SECTION -->
+            
             <div id="lyrics-section" class="lyrics-section">
-                <button class="close-lyrics-btn" onclick="toggleLyrics()"><i data-lucide="chevron-down" class="w-10 h-10"></i></button>
+                <button type="button" class="close-lyrics-btn" onclick="toggleLyrics()"><i data-lucide="chevron-down" class="w-10 h-10"></i></button>
                 <div id="lyrics-scroll" class="lyrics-scroll"></div>
             </div>
         </div>
     </div>
     
-    <!-- PROFILE MODAL -->
+    
     <div id="profile-modal" class="modal">
         <div class="modal-content">
             <header class="modal-header">
@@ -185,7 +198,7 @@
         </div>
     </div>
     
-    <!-- ALBUM VIEW (when viewing album page) -->
+    
     {% if shared_album %}
     <div id="album-view" class="album-view">
         <header class="album-header">
@@ -195,8 +208,8 @@
         </header>
         <div class="album-hero">
             <div class="album-cover-large">
-                {% if shared_album.cover_filename %}
-                <img src="/uploads/{{ shared_album.cover_filename }}" alt="{{ shared_album.title }}">
+                {% if shared_album.cover_url %}
+                <img src="{{ shared_album.cover_url }}" alt="{{ shared_album.title }}" decoding="async">
                 {% else %}
                 <div class="placeholder"><i data-lucide="disc-3" class="w-16 h-16"></i></div>
                 {% endif %}
@@ -218,7 +231,7 @@
             {% for track in album_tracks %}
             <div class="track-card" onclick="window.SwagPlayer.playAlbumTrack({{ loop.index0 }})">
                 <div class="track-num">{{ loop.index }}</div>
-                <img src="{% if track.cover_filename %}/uploads/{{ track.cover_filename }}{% else %}/static/img/default-cover.svg{% endif %}" class="track-thumb">
+                <img src="{% if track.cover_url %}{{ track.cover_url }}{% else %}/static/img/default-cover.svg{% endif %}" class="track-thumb" loading="lazy" decoding="async">
                 <div class="info">
                     <div class="title">{{ track.title }}</div>
                     <div class="artist">{{ track.artist or '' }}</div>
@@ -232,7 +245,7 @@
     </div>
     {% endif %}
     
-    <!-- DATA -->
+    
     <script>
         window.INIT = {
             mode: '{{ mode or "library" }}',
@@ -247,6 +260,7 @@
         window.isTelegram = !!(window.Telegram?.WebApp?.initData);
         window.tg = window.isTelegram ? window.Telegram.WebApp : null;
     </script>
-    <script src="/static/js/unified.js"></script>
+    <script src="{{ asset('js/player-state.js') }}"></script>
+    <script src="{{ asset('js/unified.js') }}"></script>
 </body>
 </html>

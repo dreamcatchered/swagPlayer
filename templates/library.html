@@ -2,18 +2,28 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{{ user.display_name or user.nickname or 'User' }} - SwagPlayer</title>
-    <link rel="icon" type="image/x-icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SwagPlayer">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
     <style>
+        @view-transition { navigation: auto; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { overscroll-behavior: none; background: #000; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
             background: #000;
             color: #fff;
-            padding: 20px;
+            padding: max(20px, env(safe-area-inset-top, 20px)) max(20px, env(safe-area-inset-right, 20px))
+                    max(20px, env(safe-area-inset-bottom, 20px)) max(20px, env(safe-area-inset-left, 20px));
         }
         .container { max-width: 1200px; margin: 0 auto; }
         .user-header {
@@ -53,7 +63,7 @@
             max-height: none;
             overflow-y: visible;
         }
-        
+
         /* Адаптация для большого количества треков */
         @media (max-width: 768px) {
             .grid {
@@ -61,28 +71,28 @@
                 gap: 15px;
             }
         }
-        
+
         /* Виртуальный скролл для очень большого количества */
         .tracks-container {
             max-height: 80vh;
             overflow-y: auto;
             padding-right: 10px;
         }
-        
+
         .tracks-container::-webkit-scrollbar {
             width: 8px;
         }
-        
+
         .tracks-container::-webkit-scrollbar-track {
             background: rgba(255,255,255,0.05);
             border-radius: 4px;
         }
-        
+
         .tracks-container::-webkit-scrollbar-thumb {
             background: rgba(255,255,255,0.2);
             border-radius: 4px;
         }
-        
+
         .tracks-container::-webkit-scrollbar-thumb:hover {
             background: rgba(255,255,255,0.3);
         }
@@ -128,7 +138,7 @@
             padding: 60px 20px;
             color: rgba(255,255,255,0.4);
         }
-        
+
         /* Кнопка "Назад" */
         .back-btn {
             display: flex;
@@ -147,12 +157,12 @@
             text-decoration: none;
             margin-bottom: 20px;
         }
-        
+
         .back-btn:hover {
             background: rgba(255,255,255,0.2);
             transform: translateX(-2px);
         }
-        
+
         .back-btn:active {
             transform: translateX(-2px) scale(0.95);
         }
@@ -186,7 +196,7 @@
                 <div class="grid">
                     {% for track in tracks %}
                     <a href="/track/{{ track.slug or track.id }}" class="card">
-                        <img src="/uploads/{{ track.cover_filename }}" alt="{{ track.title }}" class="card-cover" 
+                        <img src="{{ track.cover_url or '/static/img/default-cover.svg' }}" alt="{{ track.title }}" class="card-cover"
                              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                         <div style="display:none; width:100%; aspect-ratio:1/1; border-radius:8px; background:#333; align-items:center; justify-content:center; margin-bottom:12px;">
                             <ion-icon name="musical-notes" style="font-size:48px; color:#666;"></ion-icon>
@@ -208,8 +218,8 @@
             <div class="grid">
                 {% for album in albums %}
                 <a href="/album/{{ album.slug or album.id }}" class="card">
-                    {% if album.cover_filename %}
-                    <img src="/uploads/{{ album.cover_filename }}" alt="{{ album.title }}" class="card-cover">
+                    {% if album.cover_url %}
+                    <img src="{{ album.cover_url }}" alt="{{ album.title }}" class="card-cover">
                     {% else %}
                     <div style="width:100%; aspect-ratio:1/1; border-radius:8px; background:linear-gradient(135deg, #333 0%, #1c1c1e 100%); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
                         <ion-icon name="albums" style="font-size:48px; color:#666;"></ion-icon>
@@ -227,7 +237,7 @@
             {% endif %}
         </div>
     </div>
-    
+
     <script src="/static/js/navigation.js?v=1"></script>
 </body>
 </html>

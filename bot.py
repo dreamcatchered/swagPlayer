@@ -6,8 +6,9 @@ import uuid
 import datetime
 
 # Токен бота
-BOT_TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
-WEB_APP_URL = 'https://swag.dreampartners.online/app'
+BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', 'YOUR_BOT_TOKEN')
+WEB_APP_URL = os.environ.get('WEB_APP_URL', 'https://music.swag.best/')
+PUBLIC_BASE_URL = os.environ.get('PUBLIC_BASE_URL', 'https://music.swag.best')
 DB_FILE = 'music.db'
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -34,7 +35,7 @@ def login_command(message):
     conn.commit()
     conn.close()
     
-    login_url = f"https://swag.dreampartners.online/auth/browser/{token}"
+    login_url = f"{PUBLIC_BASE_URL}/auth/browser/{token}"
     
     keyboard = types.InlineKeyboardMarkup()
     url_button = types.InlineKeyboardButton(text="🔓 Войти в браузере", url=login_url)
@@ -74,7 +75,7 @@ def start_command(message):
         conn.commit()
         conn.close()
         
-        login_url = f"https://swag.dreampartners.online/auth/browser/{token}"
+        login_url = f"{PUBLIC_BASE_URL}/auth/browser/{token}"
         
         keyboard = types.InlineKeyboardMarkup()
         url_button = types.InlineKeyboardButton(text="🔓 Войти в браузере", url=login_url)

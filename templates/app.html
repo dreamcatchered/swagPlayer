@@ -4,38 +4,147 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{{ page_title if page_title else 'SwagPlayer' }}</title>
-    
+
     {% if shared_track %}
     <meta property="og:title" content="{{ shared_track.title }}">
     <meta property="og:description" content="{{ shared_track.artist }}">
     <meta property="og:type" content="music.song">
-    {% if shared_track.cover_filename %}
-    <meta property="og:image" content="{{ request.url_root }}uploads/{{ shared_track.cover_filename }}">
+    {% if shared_track.cover_url %}
+    <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ shared_track.cover_url }}">
     {% endif %}
     {% endif %}
-    
-    <!-- Telegram WebApp -->
+
+
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Telegram Meta Tags -->
+
+
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <!-- Favicons -->
-    <link rel="icon" type="image/x-icon" href="https://api.dreampartners.online/icons/swagaplayerobot/favicon.ico">
-    
-    <!-- Иконки Apple Style -->
+
+
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-    
-    <link rel="stylesheet" href="/static/css/app.css">
-    <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+
+    <style id="swag-app-player-css">
+        :root {
+            --ease: cubic-bezier(0.25, 1, 0.5, 1);
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --admin-nav-h: 72px;
+        }
+        /* ---- MINI PLAYER ---- */
+        #mini-player.mini-player {
+            position: fixed;
+            left: 12px; right: 12px;
+            bottom: calc(var(--admin-nav-h) + var(--safe-bottom));
+            background: rgba(20,20,20,0.96);
+            backdrop-filter: blur(22px) saturate(180%);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 8px 12px;
+            display: flex; align-items: center; gap: 10px;
+            z-index: 1500;
+            transform: translateY(150%); opacity: 0; pointer-events: none;
+            transition: transform .35s var(--ease), opacity .2s;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+        }
+        #mini-player.mini-player.visible { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        #mini-player .mini-cover {
+            width: 44px; height: 44px; border-radius: 10px; object-fit: cover;
+            background: #222 url('/static/img/icon-192.png') center/contain no-repeat;
+            flex-shrink: 0;
+        }
+        #mini-player .mini-info { flex: 1; min-width: 0; }
+        #mini-player .mini-title { font-weight: 600; font-size: 14px; color: #fff;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #mini-player .mini-artist { font-size: 12px; color: #888;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #mini-player .mini-controls { display: flex; gap: 2px; align-items: center; }
+        #mini-player .mini-controls button {
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            background: transparent; border: 0; color: #fff; cursor: pointer; border-radius: 50%;
+            font-size: 18px; padding: 0;
+        }
+        #mini-player .mini-controls button:hover { background: rgba(255,255,255,0.08); }
+        #mini-player .mini-close-btn { color: rgba(255,255,255,0.7); }
+
+        /* ---- FULL PLAYER ---- */
+        #full-player.full-player {
+            position: fixed; inset: 0; background: #000;
+            z-index: 2000; opacity: 0; pointer-events: none;
+            transition: opacity .35s var(--ease);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #full-player.full-player.visible { opacity: 1; pointer-events: auto; }
+        #full-player .player-section {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: calc(24px + var(--safe-top)) 24px calc(24px + var(--safe-bottom));
+            position: relative; gap: 24px;
+        }
+        #full-player .close-btn {
+            position: absolute; top: calc(16px + var(--safe-top)); left: 16px;
+            background: transparent; border: 0; color: rgba(255,255,255,0.6); cursor: pointer;
+            padding: 8px; font-size: 24px;
+        }
+        #full-player .close-btn:hover { color: #fff; }
+        #full-player .art-card {
+            width: 80vw; height: 80vw; max-width: 360px; max-height: 360px;
+            border-radius: 20px; background-size: cover; background-position: center;
+            background-color: #222; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform: scale(0.92); transition: transform .8s var(--ease);
+        }
+        #full-player .art-card.playing { transform: scale(1); }
+        #full-player .info-controls { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 18px; }
+        #full-player .track-info { text-align: center; }
+        #full-player .full-title { font-size: 22px; font-weight: 800; margin: 0 0 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+        #full-player .full-artist { font-size: 15px; color: #888; margin: 0; }
+        #full-player .progress-container { display: flex; flex-direction: column; gap: 6px; }
+        #full-player .progress-range { width: 100%; height: 6px; -webkit-appearance: none;
+            background: rgba(255,255,255,0.1); border-radius: 10px; cursor: pointer; }
+        #full-player .progress-range::-webkit-slider-thumb { -webkit-appearance: none;
+            width: 14px; height: 14px; background: #fff; border-radius: 50%; }
+        #full-player .time-display { display: flex; justify-content: space-between;
+            font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        #full-player .main-controls { display: flex; align-items: center; justify-content: center; gap: 16px; }
+        #full-player .ctrl-btn { width: 48px; height: 48px; display: flex; align-items: center;
+            justify-content: center; background: transparent; border: 0; color: #aaa; cursor: pointer;
+            border-radius: 50%; font-size: 22px; }
+        #full-player .ctrl-btn:hover { color: #fff; }
+        #full-player .play-btn { width: 64px; height: 64px; display: flex; align-items: center;
+            justify-content: center; background: #fff; border: 0; border-radius: 50%; cursor: pointer;
+            font-size: 28px; color: #000; box-shadow: 0 6px 20px rgba(255,255,255,0.18); }
+        #full-player .secondary-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        #full-player .like-btn, #full-player .share-btn {
+            background: rgba(255,255,255,0.08); border: 0; color: #fff; padding: 10px 14px;
+            border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+            font-size: 14px;
+        }
+        #full-player .like-btn.liked { color: #fa2d48; }
+        #full-player .volume-control { display: flex; align-items: center; gap: 8px; flex: 1; }
+        #full-player .volume-control input { flex: 1; -webkit-appearance: none; height: 4px;
+            background: rgba(255,255,255,0.15); border-radius: 4px; }
+        #full-player .volume-control input::-webkit-slider-thumb { -webkit-appearance: none;
+            width: 12px; height: 12px; background: #fff; border-radius: 50%; }
+
+        /* Контент админ-вкладок: отступ под миниплеер */
+        body[data-page="app"] .main-app { padding-bottom: calc(var(--admin-nav-h) + 80px); }
+    </style>
 </head>
 <body class="{{ 'shared-mode' if shared_mode else '' }}" data-page="app">
     <div class="bg-noise"></div>
 
-    <!-- SKELETON LOADER (Only for Shared Mode) -->
+
     <div class="skeleton-loader" id="skeleton-loader">
         <div class="skeleton-header"></div>
         <div class="skeleton-content">
@@ -59,7 +168,7 @@
         </div>
     </div>
 
-    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+
     <div class="auth-screen" id="auth-screen">
         <div class="auth-container">
             <div class="auth-header">
@@ -80,9 +189,9 @@
         </div>
     </div>
 
-    <!-- ГЛАВНОЕ ПРИЛОЖЕНИЕ -->
+
     <div class="main-app" id="main-app" style="display:none;">
-        <!-- НАВИГАЦИЯ -->
+
         <div class="app-nav">
             <div class="nav-item active" data-page="library">
                 <ion-icon name="musical-notes"></ion-icon>
@@ -102,7 +211,7 @@
             </div>
         </div>
 
-        <!-- ШАПКА -->
+
         <div class="app-header">
             <div class="header-left">
                 <a href="/" class="back-btn" id="header-back-btn" data-no-spa="true" style="display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.1); text-decoration:none; color:white;">
@@ -117,9 +226,9 @@
             </div>
         </div>
 
-        <!-- КОНТЕНТ -->
+
         <div class="app-content">
-            <!-- СТРАНИЦА: МОЯ БИБЛИОТЕКА -->
+
             <div class="page active" id="page-library">
                 <div class="library-stats">
                     <div class="stat-card">
@@ -137,8 +246,24 @@
                         </div>
                     </div>
                 </div>
+                <div class="bulk-toolbar" id="bulk-toolbar" style="display:none;">
+                    <label class="bulk-select-all">
+                        <input type="checkbox" id="bulk-select-all" onchange="bulkToggleAll(this.checked)">
+                        <span>Выбрать все</span>
+                    </label>
+                    <span class="bulk-count" id="bulk-count">Выбрано: 0</span>
+                    <div class="bulk-actions">
+                        <button class="bulk-btn" onclick="bulkSetCover()"><ion-icon name="image"></ion-icon> Одна обложка</button>
+                        <button class="bulk-btn" onclick="bulkSetCoverExisting()"><ion-icon name="images"></ion-icon> Из загруженных</button>
+                        <button class="bulk-btn" onclick="bulkSetArtist()"><ion-icon name="person"></ion-icon> Исполнитель</button>
+                        <button class="bulk-btn" onclick="bulkHide(true)"><ion-icon name="eye-off"></ion-icon> Скрыть</button>
+                        <button class="bulk-btn" onclick="bulkHide(false)"><ion-icon name="eye"></ion-icon> Показать</button>
+                        <button class="bulk-btn bulk-btn-danger" onclick="bulkDelete()"><ion-icon name="trash"></ion-icon> Удалить</button>
+                    </div>
+                    <input type="file" id="bulk-cover-input" accept="image/*" style="display:none;" onchange="bulkCoverPicked(this)">
+                </div>
                 <div class="tracks-grid" id="my-tracks-list">
-                    <!-- Треки загрузятся через JS -->
+
                 </div>
                 <div class="empty-state" id="empty-tracks" style="display:none;">
                     <ion-icon name="musical-notes-outline"></ion-icon>
@@ -147,14 +272,14 @@
                 </div>
             </div>
 
-            <!-- СТРАНИЦА: ЗАГРУЗКА ТРЕКА -->
+
             <div class="page" id="page-upload">
                 <div class="upload-form">
                     <h2>Загрузить треки</h2>
-                    
-                    <!-- Область выбора файлов -->
+
+
                     <div id="upload-initial-state">
-                        <div class="upload-drop-zone" onclick="document.getElementById('audio-files-input').click()" 
+                        <div class="upload-drop-zone" onclick="document.getElementById('audio-files-input').click()"
                              style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s;"
                              onmouseover="this.style.borderColor='rgba(255,255,255,0.4)'; this.style.background='rgba(255,255,255,0.05)'"
                              onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'; this.style.background='transparent'">
@@ -165,7 +290,7 @@
                         </div>
                     </div>
 
-                    <!-- Список выбранных файлов (скрыт по умолчанию) -->
+
                     <div id="upload-preview-container" style="display: none;">
                         <div class="upload-actions" style="display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center;">
                             <h3 id="upload-count-label">Выбрано файлов: 0</h3>
@@ -176,18 +301,18 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <div id="upload-tracks-list" style="display: flex; flex-direction: column; gap: 15px;">
-                            <!-- Здесь будут карточки треков -->
+
                         </div>
                     </div>
-                    
-                    <!-- Скрытая форма для совместимости (если нужно) -->
+
+
                     <form id="upload-form" style="display:none"></form>
                 </div>
             </div>
 
-            <!-- СТРАНИЦА: АЛЬБОМЫ -->
+
             <div class="page" id="page-albums">
                 <div class="albums-header">
                     <h2>Мои альбомы</h2>
@@ -197,7 +322,7 @@
                     </button>
                 </div>
                 <div class="albums-grid" id="my-albums-list">
-                    <!-- Альбомы загрузятся через JS -->
+
                 </div>
                 <div class="empty-state" id="empty-albums" style="display:none;">
                     <ion-icon name="albums-outline"></ion-icon>
@@ -206,7 +331,7 @@
                 </div>
             </div>
 
-            <!-- СТРАНИЦА: ПРОФИЛЬ -->
+
             <div class="page" id="page-profile">
                 <div class="profile-card">
                     <div style="position: relative; width: 120px; height: 120px; margin: 0 auto 20px;">
@@ -237,7 +362,7 @@
                         <div class="info-item">
                             <label>Nickname (для ссылки)</label>
                             <input type="text" id="profile-nickname-input" placeholder="your-nickname">
-                            <small>swag.dreampartners.online/user/<span id="profile-slug-preview">...</span></small>
+                            <small>music.swag.best/user/<span id="profile-slug-preview">...</span></small>
                         </div>
                         <div class="info-item">
                             <label>Статистика</label>
@@ -262,11 +387,65 @@
         </div>
     </div>
 
-    <!-- МОДУЛЬНЫЙ ПЛЕЕР -->
-    {% include 'player_component.html' %}
 
-    <!-- МОДАЛЬНЫЕ ОКНА -->
-    <!-- Модалка создания альбома -->
+    <audio id="audio" preload="metadata" playsinline webkit-playsinline></audio>
+
+
+    <div id="mini-player" class="mini-player" onclick="window.SwagPlayer?.expandPlayer()">
+        <img id="mini-cover" src="/static/img/icon-192.png" class="mini-cover" alt="" onerror="this.src='/static/img/icon-192.png'">
+        <div class="mini-info">
+            <div id="mini-title" class="mini-title">Не воспроизводится</div>
+            <div id="mini-artist" class="mini-artist"></div>
+        </div>
+        <div class="mini-controls" onclick="event.stopPropagation()">
+            <button onclick="window.SwagPlayer?.prevTrack()" aria-label="prev"><ion-icon name="play-skip-back"></ion-icon></button>
+            <button id="mini-play-btn" onclick="window.SwagPlayer?.togglePlay()" aria-label="play"><ion-icon name="play"></ion-icon></button>
+            <button onclick="window.SwagPlayer?.nextTrack()" aria-label="next"><ion-icon name="play-skip-forward"></ion-icon></button>
+            <button class="mini-close-btn" onclick="event.stopPropagation(); window.SwagPlayer?.closeTrack()" aria-label="закрыть"><ion-icon name="close"></ion-icon></button>
+        </div>
+    </div>
+
+
+    <div id="full-player" class="full-player">
+        <div id="player-wrapper" class="player-wrapper">
+            <div id="player-section" class="player-section">
+                <button type="button" class="close-btn" onclick="window.SwagPlayer?.collapsePlayer()"><ion-icon name="chevron-down"></ion-icon></button>
+                <div class="art-container"><div id="art-card" class="art-card"></div></div>
+                <div class="info-controls">
+                    <div class="track-info">
+                        <h1 id="full-title" class="full-title">Название</h1>
+                        <p id="full-artist" class="full-artist">Исполнитель</p>
+                    </div>
+                    <div class="progress-container">
+                        <input type="range" id="progress" class="progress-range" value="0" min="0" max="100" step="0.1">
+                        <div class="time-display">
+                            <span id="cur-time">0:00</span>
+                            <span id="total-time">0:00</span>
+                        </div>
+                    </div>
+                    <div class="main-controls">
+                        <button class="ctrl-btn" onclick="window.SwagPlayer?.prevTrack()"><ion-icon name="play-skip-back"></ion-icon></button>
+                        <button class="play-btn" id="play-btn" onclick="window.SwagPlayer?.togglePlay()"><ion-icon name="play" id="play-icon"></ion-icon></button>
+                        <button class="ctrl-btn" onclick="window.SwagPlayer?.nextTrack()"><ion-icon name="play-skip-forward"></ion-icon></button>
+                    </div>
+                    <div class="secondary-controls">
+                        <button class="like-btn" id="like-btn" onclick="window.SwagPlayer?.toggleLike()">
+                            <ion-icon name="heart-outline" id="like-icon"></ion-icon>
+                            <span id="likes-count">0</span>
+                        </button>
+                        <div class="volume-control" id="volume-control">
+                            <ion-icon name="volume-medium-outline" id="volume-icon"></ion-icon>
+                            <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.01" value="1">
+                        </div>
+                        <button class="share-btn" onclick="window.SwagPlayer?.shareTrack()"><ion-icon name="share-social-outline"></ion-icon></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
     <div class="modal" id="modal-create-album">
         <div class="modal-content">
             <div class="modal-header">
@@ -292,14 +471,14 @@
                 <div class="form-group">
                     <label>Короткая ссылка (slug)</label>
                     <input type="text" id="album-slug" placeholder="my-album" autocomplete="off">
-                    <small>swag.dreampartners.online/album/<span id="album-slug-preview">...</span></small>
+                    <small>music.swag.best/album/<span id="album-slug-preview">...</span></small>
                 </div>
                 <button type="submit" class="btn-primary">Создать альбом</button>
             </form>
         </div>
     </div>
 
-    <!-- Модалка редактирования трека -->
+
     <div class="modal" id="modal-edit-track">
         <div class="modal-content">
             <div class="modal-header">
@@ -330,8 +509,12 @@
                     </div>
                     <div class="form-group">
                         <label>Обложка трека</label>
+                        <input type="hidden" id="edit-track-cover-key">
                         <input type="file" id="edit-track-cover-file" accept="image/*">
                         <div class="cover-preview" id="edit-track-cover-preview"></div>
+                        <button type="button" class="btn-secondary" style="margin-top:8px;" onclick="openCoverPicker('track')">
+                            <ion-icon name="images"></ion-icon> Выбрать из загруженных
+                        </button>
                     </div>
                     <div class="form-group">
                         <label>Текст (LRC)</label>
@@ -351,84 +534,240 @@
                             <ion-icon name="trash"></ion-icon>
                         </button>
                     </div>
+                    <a id="edit-track-download" href="#" download class="btn-secondary"
+                       style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; width:100%;">
+                        <ion-icon name="download-outline"></ion-icon>
+                        <span>Скачать MP3</span>
+                    </a>
                     <button type="submit" class="btn-primary" style="width: 100%;">Сохранить</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Модалка Lyrics Studio -->
+
+    <div class="modal" id="modal-cover-picker">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Выберите обложку</h2>
+                <button class="btn-icon" onclick="closeCoverPicker()">
+                    <ion-icon name="close"></ion-icon>
+                </button>
+            </div>
+            <div id="cover-picker-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:10px 0; overflow-y:auto; max-height:60vh;">
+            </div>
+        </div>
+    </div>
+
+
     <div class="modal modal-large" id="modal-lyrics-studio" style="z-index: 10010;">
-        <div class="modal-content" style="max-width: 1000px; height: 95vh; display: flex; flex-direction: column;">
+        <div class="modal-content ls-modal-content">
             <div class="modal-header">
                 <h2>Lyrics Studio</h2>
                 <button class="btn-icon" onclick="closeModal('modal-lyrics-studio')">
                     <ion-icon name="close"></ion-icon>
                 </button>
             </div>
-            
-            <div class="ls-guide">
-                <strong>Как пользоваться:</strong>
-                <ol>
-                    <li>Вставьте текст песни в левое поле.</li>
-                    <li>Нажмите кнопку <b>"Распарсить текст"</b> (стрелочка вправо).</li>
-                    <li>Запустите плеер кнопкой Play.</li>
-                    <li>Нажимайте <b>Пробел</b> или кнопку с отпечатком в момент начала каждой строки.</li>
-                    <li>Когда закончите, нажмите <b>"Сохранить лирику"</b>, чтобы применить изменения.</li>
-                    <li><b>ВАЖНО:</b> Не забудьте нажать "Сохранить" в главном окне редактирования трека!</li>
-                </ol>
-            </div>
-
-            <div class="lyrics-studio">
-                <div class="ls-controls">
-                    <button class="action-btn" onclick="lsPlayPause()" id="ls-play-btn"><ion-icon name="play"></ion-icon></button>
-                    <div id="ls-time-display">0:00</div>
-                    <input type="range" id="ls-seek" value="0" min="0" max="100" step="0.1">
-                    <button class="btn-sync-large" onclick="lsSyncCurrentLine()" title="Синхронизировать (Пробел)">
-                        <ion-icon name="finger-print"></ion-icon>
+            <div class="lyrics-studio ls-shell">
+                <div class="ls-summary-bar">
+                    <div class="ls-summary-copy">
+                        <div class="ls-summary-title" id="ls-track-label">Откройте трек или загрузите аудио</div>
+                        <div class="ls-summary-hints">
+                            <span class="ls-chip">Space = stamp</span>
+                            <span class="ls-chip">P = play / pause</span>
+                            <span class="ls-chip">Drag = retime</span>
+                            <span class="ls-chip">Handles = trim</span>
+                        </div>
+                    </div>
+                    <button class="btn-ls-action primary" onclick="lsExport()">
+                        <ion-icon name="checkmark"></ion-icon> Сохранить лирику
                     </button>
                 </div>
 
-                <div class="ls-editor-container">
-                    <!-- RAW TEXT PANE -->
-                    <div class="ls-pane">
-                        <div class="ls-header">
-                            <span>1. Исходный текст</span>
+                <div class="ls-mobile-tabs" id="ls-mobile-tabs">
+                    <button class="ls-mobile-tab active" id="ls-mobile-tab-preview" onclick="lsSwitchTab('preview')">Караоке</button>
+                    <button class="ls-mobile-tab" id="ls-mobile-tab-editor" onclick="lsSwitchTab('editor')">Raw LRC</button>
+                </div>
+
+                <div class="ls-workspace">
+                    <div class="ls-panel ls-editor-panel" id="ls-editor-panel">
+                        <div class="ls-panel-header">
+                            <span>Raw LRC</span>
                             <button class="btn-ls-action" onclick="lsParseText()">
-                                Распарсить текст <ion-icon name="arrow-forward"></ion-icon>
+                                Обновить таймлайн <ion-icon name="refresh"></ion-icon>
                             </button>
                         </div>
-                        <textarea class="ls-input" id="ls-raw-input" placeholder="Вставьте текст песни здесь..." oninput="syncFromRawText()"></textarea>
+                        <textarea class="ls-input" id="ls-raw-input" placeholder="Вставьте текст песни или LRC..." oninput="syncFromRawText()" spellcheck="false"></textarea>
                     </div>
-                    
-                    <!-- SYNC PANE -->
-                    <div class="ls-pane">
-                        <div class="ls-header">
-                            <span>2. Таймлайн (Синхронизация)</span>
-                            <button class="btn-ls-action primary" onclick="lsExport()">
-                                <ion-icon name="checkmark"></ion-icon> Сохранить лирику
-                            </button>
+
+                    <div class="ls-panel ls-preview-panel" id="ls-preview-panel">
+                        <div class="ls-panel-header">
+                            <span>Apple Music Preview</span>
+                            <span class="ls-panel-meta" id="ls-preview-status">0 строк</span>
                         </div>
-                        <div class="ls-timeline" id="ls-lines-container">
-                            <!-- Lines will go here -->
+                        <div class="ls-preview" id="ls-preview"></div>
+                    </div>
+                </div>
+
+                <div class="ls-timeline-shell">
+                    <div class="ls-controls">
+                        <button class="action-btn" onclick="lsPlayPause()" id="ls-play-btn" title="Play / Pause">
+                            <ion-icon name="play"></ion-icon>
+                        </button>
+                        <div class="ls-transport">
+                            <span id="ls-time-display">00:00.00</span>
+                            <span id="ls-duration-display">/ 00:00.00</span>
+                        </div>
+                        <button class="btn-ls-action" onclick="lsSyncCurrentLine()" title="Поставить время активной строке">
+                            <ion-icon name="finger-print"></ion-icon> Stamp
+                        </button>
+                        <button class="btn-ls-action" onclick="addNewLine()" title="Добавить строку на текущем времени">
+                            <ion-icon name="add"></ion-icon> Строка
+                        </button>
+                        <button class="btn-ls-action active" id="ls-magnet-btn" onclick="lsToggleMagnet()" title="Прилипание к соседним точкам">
+                            <ion-icon name="magnet"></ion-icon> Magnet
+                        </button>
+                        <div class="ls-spacer"></div>
+                        <label class="ls-zoom-control" for="ls-zoom">
+                            <span>Zoom</span>
+                            <input type="range" id="ls-zoom" min="4" max="320" value="84">
+                        </label>
+                    </div>
+
+                    <div class="ls-timeline-container" id="ls-timeline-container">
+                        <div class="ls-timeline-wrapper" id="ls-timeline-wrapper">
+                            <div class="ls-ruler" id="ls-ruler"></div>
+                            <div class="ls-track" id="ls-track"></div>
+                            <div class="ls-playhead" id="ls-playhead"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Hidden Audio for Lyrics Studio -->
+
+
     <audio id="ls-audio"></audio>
 
     <script>
         var SHARED_MODE = {{ 'true' if shared_mode else 'false' }};
         var INITIAL_TRACK = {{ shared_track | tojson | safe if shared_track else 'null' }};
         var INIT_DATA_FROM_URL = {% if init_data %}{{ init_data | tojson | safe }}{% else %}null{% endif %};
+
+        // Для unified.js — он смотрит window.INIT.
+        // На /app треки догрузит app.js, но мы передаём «нулевой» init чтобы
+        // unified не падал и сразу инициализировался.
+        window.INIT = {
+            mode: 'app',
+            sharedTrack: INITIAL_TRACK,
+            sharedAlbum: null,
+            albumTracks: [],
+            tracks: [],
+            albums: [],
+            user: null,
+            q: ''
+        };
+        window.isTelegram = !!(window.Telegram?.WebApp?.initData);
+        window.tg = window.isTelegram ? window.Telegram.WebApp : null;
     </script>
-    <script src="/static/js/navigation.js?v=2"></script>
-    <script src="/static/js/app.js?v=19"></script>
-    <script src="/static/js/profile.js?v=19"></script>
-    <script src="/static/js/player.js?v=19"></script>
+    <script src="{{ asset('js/player-state.js') }}"></script>
+    <script src="{{ asset('js/navigation.js') }}"></script>
+
+    <script src="{{ asset('js/app.js') }}"></script>
+    <script src="{{ asset('js/unified.js') }}"></script>
+    <script>
+        // /app: тонкий мост к unified-плееру.
+        // Оригинальный app.js рендерит свои карточки треков с действиями
+        // (Play/Edit/В альбом/Поделиться) — НЕ ТРОГАЕМ. Перехватываем только
+        // низкоуровневые функции аудио — те что раньше жили в player.js.
+        // Оригинальная playMyTrack(id) → window.tracks = list; window.playTrack(idx, true).
+        // Наш window.playTrack читает list из window.tracks и отдаёт его SwagPlayer.
+        (function bridge() {
+            const SP = window.SwagPlayer;
+            if (!SP) { return; }
+            window.playTrack = function (index, _autoPlay) {
+                const list = Array.isArray(window.tracks) ? window.tracks : [];
+                if (index == null || index < 0 || index >= list.length) return;
+                SP.__setList && SP.__setList('my', list);
+                SP.playTrack(index, list);
+            };
+            window.setTracks = function (list) {
+                if (!Array.isArray(list)) return;
+                window.tracks = list;
+                SP.__setList && SP.__setList('my', list);
+            };
+            window.togglePlay = () => SP.togglePlay();
+            window.prevTrack = () => SP.prevTrack();
+            window.nextTrack = () => SP.nextTrack();
+            window.expandPlayer = () => SP.expandPlayer();
+            window.collapsePlayer = () => SP.collapsePlayer();
+            window.closeTrack = () => SP.closeTrack && SP.closeTrack();
+            window.toggleLyricsView = () => SP.toggleLyrics();
+            window.toggleCurrentTrackLike = () => SP.toggleLike();
+            window.shareCurrentTrack = () => SP.shareTrack();
+            window.toggleMiniVolume = window.toggleMiniVolume || (() => {});
+        })();
+
+        // Когда открывают edit-модалку трека — оборачиваем editTrack чтобы
+        // прокинуть актуальный href в «Скачать MP3».
+        (function setupDownloadInEditModal() {
+            const origEdit = window.editTrack;
+            if (typeof origEdit !== 'function') {
+                // app.js ещё не успел экспортировать — повторим через 50мс.
+                setTimeout(setupDownloadInEditModal, 50);
+                return;
+            }
+            window.editTrack = async function(trackId) {
+                const r = await origEdit.apply(this, arguments);
+                try {
+                    const list = (window.myTracks && Array.isArray(window.myTracks)) ? window.myTracks : [];
+                    const track = list.find(t => t && t.id === trackId);
+                    const dl = document.getElementById('edit-track-download');
+                    if (dl) {
+                        if (track && track.audio_url) {
+                            dl.href = track.audio_url + '&download=1';
+                            dl.style.display = '';
+                        } else {
+                            dl.removeAttribute('href');
+                            dl.style.display = 'none';
+                        }
+                    }
+                } catch(e) { /* ignore */ }
+                return r;
+            };
+        })();
+
+        // Профиль админа: app.js рендерит свой UI без ссылки на главную.
+        // Добавим «🏠 Главная» после каждого рендера через MutationObserver —
+        // и не дёргаем app.js напрямую.
+        (function injectHomeLink() {
+            const seen = new WeakSet();
+            const ensureLink = () => {
+                document.querySelectorAll('#profile-tab, #profile-page, .profile-content, [data-page="profile"]').forEach((root) => {
+                    if (seen.has(root)) return;
+                    // Ищем кнопку «Выйти»
+                    const buttons = root.querySelectorAll('button, a');
+                    let logoutBtn = null;
+                    buttons.forEach((b) => {
+                        const t = (b.textContent || '').trim().toLowerCase();
+                        if (!logoutBtn && (t === 'выйти' || t.includes('выйти'))) logoutBtn = b;
+                    });
+                    if (!logoutBtn) return;
+                    if (root.querySelector('.btn-home-injected')) { seen.add(root); return; }
+                    const a = document.createElement('a');
+                    a.href = '/';
+                    a.className = 'btn-secondary btn-home-injected';
+                    a.style.cssText = 'display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; background:rgba(255,255,255,0.08); color:#fff; text-decoration:none; margin-bottom:10px; font-weight:500;';
+                    a.innerHTML = '<ion-icon name="home-outline"></ion-icon><span>Главная</span>';
+                    logoutBtn.parentNode.insertBefore(a, logoutBtn);
+                    seen.add(root);
+                });
+            };
+            // Один раз сейчас, потом — после каждого DOM-update.
+            const mo = new MutationObserver(() => ensureLink());
+            mo.observe(document.body, { childList: true, subtree: true });
+            ensureLink();
+        })();
+    </script>
 </body>
 </html>

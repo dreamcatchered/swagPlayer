@@ -7,6 +7,11 @@ Includes a Telegram bot for quick login and playlist access from your phone.
 ## Features
 
 - **LRC lyrics player** — synchronized lyrics with real-time line highlighting
+- **HTTP Range audio streaming** — partial requests (206) instead of serving whole files, so seek/duration work correctly in every browser and mobile WebView
+- **Signed media URLs** — track links are HMAC-signed with an expiry and browser fingerprint, so files can't be hot-linked or guessed
+- **Telegram Login Widget verification** — `initData` is validated server-side via HMAC (with replay protection); bot deep-link login uses short-lived one-time tokens
+- **Rate limiting** — per-IP sliding-window limits on auth, playback and admin login endpoints
+- **Hardened sessions** — HttpOnly / SameSite / Secure cookies, ProxyFix behind nginx
 - MP3 upload and streaming
 - Album and playlist management
 - Cover art support
@@ -30,8 +35,11 @@ pip install -r requirements.txt
 
 Set environment variables:
 ```
-BOT_TOKEN=your_bot_token
-SSO_CLIENT_SECRET=your_sso_secret  # if using dreamID auth
+SECRET_KEY=change-me-in-production
+TELEGRAM_BOT_TOKEN=your_bot_token
+ADMIN_TELEGRAM_IDS=123456789            # comma-separated IDs allowed into the app panel
+ADMIN_PASSWORD=your_admin_password      # admin panel login
+SSO_CLIENT_SECRET=your_sso_secret       # if using dreamID auth
 ```
 
 ```bash
