@@ -49,3 +49,57 @@ python app.py
 ## Contact
 
 Telegram: [@dreamcatch_r](https://t.me/dreamcatch_r)
+
+---
+
+# swagPlayer (RU)
+
+Веб-приложение для стриминга музыки с красивым плеером LRC-текстов — ключевой особенностью проекта. Загружайте треки, синхронизируйте текст построчно и смотрите, как строки подсвечиваются в реальном времени во время воспроизведения.
+
+Включает Telegram-бота для быстрого входа и доступа к плейлистам с телефона.
+
+## Возможности
+
+- **LRC-плеер** — синхронизированный текст песен с подсветкой строк в реальном времени
+- **HTTP Range-стриминг аудио** — частичные запросы (206) вместо отдачи файлов целиком, поэтому перемотка и длительность корректно работают в любом браузере и мобильном WebView
+- **Подписанные медиа-ссылки** — ссылки на треки подписаны HMAC с ограничением срока действия и отпечатком браузера, так что файлы нельзя угадать или использовать в обход
+- **Проверка Telegram Login Widget** — `initData` валидируется на сервере через HMAC (с защитой от повторов); вход по deep-link бота использует короткоживущие одноразовые токены
+- **Ограничение частоты запросов** — скользящие лимиты на IP для эндпоинтов авторизации, воспроизведения и входа в админку
+- **Усиленные сессии** — cookie HttpOnly / SameSite / Secure, ProxyFix за nginx
+- Загрузка и стриминг MP3
+- Управление альбомами и плейлистами
+- Поддержка обложек
+- Редактор метаданных (название, исполнитель, альбом, год)
+- Telegram-бот со входом по deep link
+- Админ-панель
+- Готовность к PWA
+
+## Стек
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?style=flat&logo=flask&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
+
+## Установка
+
+```bash
+pip install -r requirements.txt
+```
+
+Задайте переменные окружения:
+```
+SECRET_KEY=change-me-in-production
+TELEGRAM_BOT_TOKEN=your_bot_token
+ADMIN_TELEGRAM_IDS=123456789            # ID через запятую для доступа к панели
+ADMIN_PASSWORD=your_admin_password      # пароль админ-панели
+SSO_CLIENT_SECRET=your_sso_secret       # если используется авторизация dreamID
+```
+
+```bash
+python app.py
+```
+
+## Контакты
+
+Telegram: [@dreamcatch_r](https://t.me/dreamcatch_r)
